@@ -60,14 +60,14 @@
                     <div class="grid grid-cols-1 gap-6">
                         <div>
                             <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Project Name</label>
-                            <input type="text" placeholder="e.g. MMU Smart Shuttle Tracker" 
+                            <input type="text" name="project_name" placeholder="e.g. MMU Smart Shuttle Tracker" 
                                 class="w-full bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-3 focus:border-red-500 focus:bg-white outline-none transition font-medium">
                         </div>
                         <div>
                             <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Repository URL (GitHub/GitLab)</label>
                             <div class="relative">
                                 <i class="fab fa-github absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></i>
-                                <input type="url" placeholder="https://github.com/username/repo" 
+                                <input type="url" name="repo_url" placeholder="https://github.com/username/repo" 
                                     class="w-full bg-gray-50 border-2 border-gray-100 rounded-xl pl-12 pr-4 py-3 focus:border-red-500 focus:bg-white outline-none transition font-medium">
                             </div>
                         </div>
@@ -85,12 +85,12 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Primary Languages</label>
-                            <input type="text" placeholder="Python, React, PostgreSQL" 
+                            <input type="text" name="languages" placeholder="Python, React, PostgreSQL" 
                                 class="w-full bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-3 focus:border-red-500 focus:bg-white outline-none transition font-medium">
                         </div>
                         <div>
                             <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Target Roles Needed</label>
-                            <select class="w-full bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-3 focus:border-red-500 focus:bg-white outline-none transition font-medium appearance-none">
+                            <select name="roles_needed" class="w-full bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-3 focus:border-red-500 focus:bg-white outline-none transition font-medium appearance-none">
                                 <option>Lead Maintainer</option>
                                 <option>Frontend Developer</option>
                                 <option>Backend Developer</option>
@@ -111,7 +111,7 @@
                     
                     <div>
                         <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Short Description</label>
-                        <textarea rows="4" placeholder="What does it do? Why should someone take it over?" 
+                        <textarea name="description" rows="4" placeholder="What does it do? Why should someone take it over?" 
                             class="w-full bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-3 focus:border-red-500 focus:bg-white outline-none transition font-medium"></textarea>
                     </div>
                 </section>
