@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ project.project_name }} | MMU OSSD</title>
+    <title>My Teams | MMU OSSD</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -19,7 +19,7 @@
             <button id="menu-btn" class="text-white focus:outline-none p-1 hover:bg-red-800 rounded transition">
                 <i class="fas fa-bars text-xl"></i>
             </button>
-            <a href="{{ url_for('views.list_project') }}" class="hover:opacity-80 transition flex items-center gap-4">
+            <a href="Navigation.html" class="hover:opacity-80 transition flex items-center gap-4">
                 <i class="fas fa-arrow-left text-xl"></i>
                 <h1 class="text-2xl font-extrabold tracking-tighter">
                     MMU <span class="font-light text-red-200">OSSD</span>
@@ -27,10 +27,10 @@
             </a>
         </div>
         <div class="hidden md:flex space-x-8 items-center font-medium">
-            <a href="#" class="hover:text-red-200 transition">Search</a>
-            <a href="#" class="hover:text-red-200 transition">My Projects</a>
+            <a href="Search.html" class="hover:text-red-200 transition">Search</a>
+            <a href="My_Projects.html" class="hover:text-red-200 transition">My Projects</a>
             <div class="bg-red-800 px-4 py-2 rounded-full flex items-center space-x-3 border border-red-500/50">
-                <a href="#">
+                <a href="Profile.html">
                     <span class="text-sm">student@mmu.edu.my</span>
                     <i class="fas fa-user-circle text-lg"></i>
                 </a>
@@ -41,124 +41,73 @@
 
 <header class="bg-white border-b py-12">
     <div class="container mx-auto px-6">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-                <div class="flex items-center gap-3 mb-2">
-                    <span class="text-xs font-bold bg-green-100 text-green-700 px-3 py-1 rounded-full tracking-wider uppercase">Active Recruiting</span>
-                    <span class="text-xs font-bold bg-gray-100 text-gray-600 px-3 py-1 rounded-full tracking-wider uppercase">Listed: {{ project.date_created.strftime('%Y-%m-%d') }}</span>
-                </div>
-                <h2 class="text-4xl font-black text-gray-900 leading-tight">{{ project.project_name }}</h2>
-            </div>
-            <div class="flex gap-3">
-                <a href="{{ project.repo_url }}" target="_blank" class="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-bold hover:bg-gray-200 transition flex items-center gap-2">
-                    <i class="fab fa-github text-xl"></i> Repository
-                </a>
-            </div>
-        </div>
+        <h2 class="text-4xl font-black text-gray-900 leading-tight">My Engineering Squads</h2>
+        <p class="text-gray-500 mt-2 text-lg">Manage your project handovers and active collaborations.</p>
     </div>
 </header>
 
-<main class="container mx-auto px-6 py-12">
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        
-        <div class="lg:col-span-2 space-y-12">
-            
-            <section>
-                <div class="flex items-center mb-6">
-                    <h3 class="text-xs font-bold text-red-600 uppercase tracking-[0.2em] whitespace-nowrap">
-                        About The Project
-                    </h3>
-                    <div class="h-px bg-gray-200 flex-grow ml-4"></div>
-                </div>
-                <div class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm text-gray-600 leading-relaxed space-y-4">
-                    <p class="whitespace-pre-line">{{ project.description }}</p>
-                </div>
-            </section>
-
-            <section>
-                <div class="flex items-center mb-6">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">
-                        Tech Stack
-                    </h3>
-                    <div class="h-px bg-gray-200 flex-grow ml-4"></div>
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {% if project.languages %}
-                        {% for lang in project.languages.split(',') %}
-                        <div class="bg-white p-4 rounded-2xl border border-gray-100 text-center hover:border-red-300 transition flex flex-col items-center justify-center">
-                            <i class="fas fa-code text-2xl text-gray-400 mb-2"></i>
-                            <div class="font-bold text-sm text-gray-800">{{ lang.strip() }}</div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-gray-400 text-sm">No languages specified.</div>
-                    {% endif %}
-                </div>
-            </section>
-
-            <section>
-                <div class="flex items-center mb-6">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">
-                        Gallery
-                    </h3>
-                    <div class="h-px bg-gray-200 flex-grow ml-4"></div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="h-48 bg-gray-200 rounded-2xl flex items-center justify-center text-gray-400 border border-gray-100 overflow-hidden relative group cursor-pointer">
-                        <i class="fas fa-image text-3xl mb-2 z-10 group-hover:scale-110 transition duration-300"></i>
-                        <span class="z-10 text-xs mt-2 font-bold uppercase tracking-widest">Screenshot 1</span>
-                    </div>
-                    <div class="h-48 bg-gray-200 rounded-2xl flex items-center justify-center text-gray-400 border border-gray-100 overflow-hidden relative group cursor-pointer">
-                        <i class="fas fa-image text-3xl mb-2 z-10 group-hover:scale-110 transition duration-300"></i>
-                        <span class="z-10 text-xs mt-2 font-bold uppercase tracking-widest">Screenshot 2</span>
-                    </div>
-                </div>
-            </section>
-
+<main class="container mx-auto px-6 py-10">
+    
+    <section class="mb-12">
+        <div class="flex items-center mb-8">
+            <h3 class="text-xs font-bold text-red-600 uppercase tracking-[0.2em] whitespace-nowrap">
+                Projects I Own (Handovers)
+            </h3>
+            <div class="h-px bg-gray-200 flex-grow ml-4"></div>
         </div>
 
-        <div class="space-y-8">
-            
-            <div class="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
-                <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Project Lead</h4>
-                <div class="flex items-center gap-4 mb-6">
-                    <div class="w-14 h-14 rounded-full bg-red-100 border-2 border-red-200 flex items-center justify-center text-red-600 font-bold text-xl">
-                        TZ
-                    </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition">
+                <div class="flex justify-between items-start mb-4">
                     <div>
-                        <div class="font-bold text-gray-900 text-lg">Theng Zhong Yee</div>
-                        <div class="text-sm text-gray-500">FCI Student @ MMU</div>
+                        <h4 class="text-xl font-bold text-gray-800">Smart Parking MMU</h4>
+                        <span class="text-xs font-medium bg-green-100 text-green-700 px-2 py-1 rounded">Active</span>
                     </div>
+                    <i class="fas fa-crown text-yellow-500" title="Project Lead"></i>
                 </div>
-                
-                <a href="#" class="block text-center text-sm font-bold text-red-600 hover:text-red-700 bg-red-50 py-3 rounded-xl transition">
-                    <i class="far fa-envelope mr-2"></i> Contact Lead
-                </a>
+                <p class="text-gray-600 text-sm mb-6">IoT-based parking slot detection system for MMU Melaka campus.</p>
+                <div class="flex items-center justify-between pt-4 border-t border-gray-50">
+                    <div class="flex -space-x-2">
+                        <div class="w-8 h-8 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center text-[10px] font-bold">JD</div>
+                        <div class="w-8 h-8 rounded-full bg-red-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-red-600">+3</div>
+                    </div>
+                    <a href="Manage_Project.html" class="text-sm font-bold text-red-600 hover:text-red-700">MANAGE HANDOVER →</a>
+                </div>
             </div>
 
-            <div class="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
-                <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Roles Needed</h4>
-                
-                <ul class="space-y-4 mb-8">
-                    <li class="flex items-start justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-                        <div>
-                            <div class="font-bold text-gray-800 text-sm">{{ project.roles_needed }}</div>
-                            <div class="text-[10px] text-gray-500 mt-1 uppercase tracking-wider">Required</div>
-                        </div>
-                        <span class="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-1 rounded">High Priority</span>
-                    </li>
-                </ul>
-
-                <button class="w-full bg-red-600 text-white px-6 py-4 rounded-2xl font-black hover:bg-red-700 transform hover:-translate-y-1 transition shadow-xl shadow-red-200 flex items-center justify-center gap-2">
-                    <i class="fas fa-handshake"></i> REQUEST TO JOIN
-                </button>
-                <p class="text-[10px] text-center text-gray-400 mt-4 uppercase tracking-widest">
-                    Requires Lead Approval
-                </p>
-            </div>
-
+            <a href="List_Your_Project.html" class="border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center p-6 hover:border-red-400 hover:bg-red-50 transition group">
+                <i class="fas fa-plus-circle text-3xl text-gray-300 group-hover:text-red-500 mb-2"></i>
+                <span class="font-bold text-gray-400 group-hover:text-red-600 text-sm uppercase tracking-widest">List New Project</span>
+            </a>
         </div>
-    </div>
+    </section>
+
+    <section>
+        <div class="flex items-center mb-8">
+            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                Contributing To
+            </h3>
+            <div class="h-px bg-gray-200 flex-grow ml-4"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <h4 class="text-lg font-bold text-gray-800 mb-1">MMU Bus Tracker</h4>
+                <p class="text-xs text-gray-400 mb-4">Led by: <span class="font-bold">@ahmad_dev</span></p>
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-1 rounded uppercase">Frontend</span>
+                    <span class="text-[10px] font-bold bg-orange-50 text-orange-600 px-2 py-1 rounded uppercase">React</span>
+                </div>
+                <button class="w-full bg-gray-100 text-gray-600 py-2 rounded-lg text-xs font-bold hover:bg-red-50 hover:text-red-600 transition">
+                    VIEW PROJECT LOGS
+                </button>
+            </div>
+            
+            <div class="bg-gray-50 rounded-2xl border border-gray-100 p-6 flex items-center justify-center italic text-gray-400 text-sm">
+                You haven't joined any other teams yet.
+            </div>
+        </div>
+    </section>
 </main>
 
 </body>
