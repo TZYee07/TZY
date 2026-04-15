@@ -30,3 +30,11 @@ def list_project():
         return redirect(url_for('views.list_project'))
     
     return render_template("List_Your_Project.html")
+
+
+@views.route('/project/<int:project_id>')
+def project_page(project_id):
+
+    project = Project.query.get_or_404(project_id)
+    
+    return render_template("Project_Page.html", project=project)

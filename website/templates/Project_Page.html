@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Details | MMU OSSD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+
+<nav class="bg-red-700 text-white shadow-md sticky top-0 z-50">
+    <div class="container mx-auto px-6 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <button id="menu-btn" class="text-white focus:outline-none p-1 hover:bg-red-800 rounded transition">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+            <a href="Navigation.html" class="hover:opacity-80 transition flex items-center gap-4">
+                <i class="fas fa-arrow-left text-xl"></i>
+                <h1 class="text-2xl font-extrabold tracking-tighter">
+                    MMU <span class="font-light text-red-200">OSSD</span>
+                </h1>
+            </a>
+        </div>
+        <div class="hidden md:flex space-x-8 items-center font-medium">
+            <a href="Search.html" class="hover:text-red-200 transition">Search</a>
+            <a href="My_Projects.html" class="hover:text-red-200 transition">My Projects</a>
+            <div class="bg-red-800 px-4 py-2 rounded-full flex items-center space-x-3 border border-red-500/50">
+                <a href="Profile.html">
+                    <span class="text-sm">student@mmu.edu.my</span>
+                    <i class="fas fa-user-circle text-lg"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<header class="bg-white border-b py-12">
+    <div class="container mx-auto px-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="text-xs font-bold bg-green-100 text-green-700 px-3 py-1 rounded-full tracking-wider uppercase">Active Recruiting</span>
+                    <span class="text-xs font-bold bg-gray-100 text-gray-600 px-3 py-1 rounded-full tracking-wider uppercase">Open Source</span>
+                </div>
+                <h2 class="text-4xl font-black text-gray-900 leading-tight">MMU Open Source Directory</h2>
+                <p class="text-gray-500 mt-2 text-lg max-w-2xl">A "Team Tinder" platform designed to match MMU FCI students with active engineering projects and handover opportunities.</p>
+            </div>
+            <div class="flex gap-3">
+                <a href="#" class="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-bold hover:bg-gray-200 transition flex items-center gap-2">
+                    <i class="fab fa-github text-xl"></i> Repository
+                </a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="container mx-auto px-6 py-12">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        
+        <div class="lg:col-span-2 space-y-12">
+            
+            <section>
+                <div class="flex items-center mb-6">
+                    <h3 class="text-xs font-bold text-red-600 uppercase tracking-[0.2em] whitespace-nowrap">
+                        About The Project
+                    </h3>
+                    <div class="h-px bg-gray-200 flex-grow ml-4"></div>
+                </div>
+                <div class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm text-gray-600 leading-relaxed space-y-4">
+                    <p>
+                        This project aims to solve the problem of abandoned student projects at Multimedia University. Every semester, brilliant systems are built and forgotten. The MMU OSSD acts as a directory to preserve these legacies and find the next generation of maintainers.
+                    </p>
+                    <p>
+                        We are currently implementing the core owner management features and project administration modules.
+                    </p>
+                </div>
+            </section>
+
+            <section>
+                <div class="flex items-center mb-6">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                        Tech Stack
+                    </h3>
+                    <div class="h-px bg-gray-200 flex-grow ml-4"></div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-white p-4 rounded-2xl border border-gray-100 text-center hover:border-red-300 transition">
+                        <i class="fab fa-python text-3xl text-blue-500 mb-2"></i>
+                        <div class="font-bold text-sm text-gray-800">Python</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-gray-100 text-center hover:border-red-300 transition">
+                        <i class="fas fa-pepper-hot text-3xl text-red-500 mb-2"></i>
+                        <div class="font-bold text-sm text-gray-800">Flask</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-gray-100 text-center hover:border-red-300 transition">
+                        <i class="fab fa-js text-3xl text-yellow-400 mb-2"></i>
+                        <div class="font-bold text-sm text-gray-800">JavaScript</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-gray-100 text-center hover:border-red-300 transition">
+                        <i class="fas fa-wind text-3xl text-teal-500 mb-2"></i>
+                        <div class="font-bold text-sm text-gray-800">Tailwind CSS</div>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <div class="flex items-center mb-6">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                        Gallery
+                    </h3>
+                    <div class="h-px bg-gray-200 flex-grow ml-4"></div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="h-48 bg-gray-200 rounded-2xl flex items-center justify-center text-gray-400 border border-gray-100 overflow-hidden relative group cursor-pointer">
+                        <i class="fas fa-image text-3xl mb-2 z-10 group-hover:scale-110 transition duration-300"></i>
+                        <div class="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition"></div>
+                    </div>
+                    <div class="h-48 bg-gray-200 rounded-2xl flex items-center justify-center text-gray-400 border border-gray-100 overflow-hidden relative group cursor-pointer">
+                        <i class="fas fa-image text-3xl mb-2 z-10 group-hover:scale-110 transition duration-300"></i>
+                        <div class="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition"></div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <div class="space-y-8">
+            
+            <div class="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+                <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Project Lead</h4>
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-14 h-14 rounded-full bg-red-100 border-2 border-red-200 flex items-center justify-center text-red-600 font-bold text-xl">
+                        TZ
+                    </div>
+                    <div>
+                        <div class="font-bold text-gray-900 text-lg">Theng Zhong Yee</div>
+                        <div class="text-sm text-gray-500">FCI Student @ MMU</div>
+                    </div>
+                </div>
+                
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-xl mb-6">
+                    <p class="text-xs text-blue-800 leading-relaxed font-medium">
+                        "Looking for contributors who are passionate about open source and backend architecture."
+                    </p>
+                </div>
+
+                <a href="#" class="block text-center text-sm font-bold text-red-600 hover:text-red-700 bg-red-50 py-3 rounded-xl transition">
+                    <i class="far fa-envelope mr-2"></i> Contact Lead
+                </a>
+            </div>
+
+            <div class="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
+                <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Roles Needed</h4>
+                
+                <ul class="space-y-4 mb-8">
+                    <li class="flex items-start justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                        <div>
+                            <div class="font-bold text-gray-800 text-sm">Backend Developer</div>
+                            <div class="text-[10px] text-gray-500 mt-1 uppercase tracking-wider">Flask • SQLAlchemy</div>
+                        </div>
+                        <span class="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-1 rounded">High Priority</span>
+                    </li>
+                    <li class="flex items-start justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                        <div>
+                            <div class="font-bold text-gray-800 text-sm">UI/UX Designer</div>
+                            <div class="text-[10px] text-gray-500 mt-1 uppercase tracking-wider">Figma • Tailwind</div>
+                        </div>
+                    </li>
+                </ul>
+
+                <button class="w-full bg-red-600 text-white px-6 py-4 rounded-2xl font-black hover:bg-red-700 transform hover:-translate-y-1 transition shadow-xl shadow-red-200 flex items-center justify-center gap-2">
+                    <i class="fas fa-handshake"></i> REQUEST TO JOIN
+                </button>
+                <p class="text-[10px] text-center text-gray-400 mt-4 uppercase tracking-widest">
+                    Requires Lead Approval
+                </p>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+<script>
+    const menuBtn = document.getElementById('menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+
+    if(menuBtn) {
+        menuBtn.addEventListener('click', () => {
+            // Implement mobile menu logic here
+            console.log("Toggle Menu");
+        });
+    }
+</script>
+
+</body>
+</html>
