@@ -8,4 +8,4 @@ class Project(db.Model):
     languages = db.Column(db.String(150))
     roles_needed = db.Column(db.String(100))
     description = db.Column(db.Text)
-    date_created = db.Column(db.DateTime, default=datetime.utcnow)
+    date_created = db.Column(db.DateTime, default=datetime.utcnow) 
