@@ -45,7 +45,7 @@ def list_project():
 
         print(f"project {name} saved into database")
 
-        return redirect(url_for('views.list_project'))
+        return redirect(url_for('views.upload_success'))
     
     return render_template("List_Your_Project.html")
 
@@ -118,3 +118,7 @@ def edit_project(project_id):
         return redirect(url_for('views.project_page', project_id=project.id))
 
     return render_template("Edit_Project.html", project=project)
+
+@views.route('/upload-success')
+def upload_success():
+    return render_template("Upload_Success.html")
