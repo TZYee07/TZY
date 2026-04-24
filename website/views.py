@@ -1,7 +1,7 @@
 import os
 from werkzeug.utils import secure_filename
 import uuid
-from flask import Blueprint, render_template, request, redirect, url_for, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, current_app, flash
 from .models import Project, ProjectImage
 from . import db
 
@@ -122,3 +122,20 @@ def edit_project(project_id):
 @views.route('/upload-success')
 def upload_success():
     return render_template("Upload_Success.html")
+
+@views.route('/delete-project/<int:project_id>', methods=['POST'])
+def delete_project(project_id):
+    project = Project.query.get_or_404(project_id)
+    
+    try:
+        db.session.delete(project)
+        db.session.commit()
+        
+        flash('Project deleted successfully!', category='success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred while deleting the project.', category='error')
+        print(f"Error: {e}")
+
+    return redirect(url_for('views.my_projects'))
