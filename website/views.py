@@ -17,7 +17,6 @@ def require_login():
     return None
 
 def get_current_user():
-    """获取当前登录的用户，如果没登录，默认返回演示账户防止程序崩溃"""
     email = session.get('user_email', 'student@mmu.edu.my')
     user = User.query.filter_by(email=email).first()
     return user
@@ -179,7 +178,6 @@ def api_login():
     if not user or not user.password_hash or not check_password_hash(user.password_hash, password):
         return jsonify({'error': 'Invalid email or password'}), 401
 
-    # 设置登录 Session
     session['user_email'] = user.email
     session['user_name']  = user.name
     return jsonify({'success': True, 'email': user.email, 'name': user.name})
