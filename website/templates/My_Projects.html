@@ -138,12 +138,10 @@
 <script>
     const API = '/api';
 
-    // 手机端菜单逻辑
     document.getElementById('menu-btn').addEventListener('click', () => {
         document.getElementById('mobile-menu').classList.toggle('hidden');
     });
 
-    // 登出逻辑
     async function logout() {
         try {
             await fetch(`${API}/logout`, { method: 'POST' });
