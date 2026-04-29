@@ -19,6 +19,8 @@ class User(db.Model):
     rank = db.Column(db.Integer, nullable=False, default=0)
     karma = db.Column(db.Integer, nullable=False, default=0)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    is_verified = db.Column(db.Boolean, default=False)
+    otp = db.Column(db.String(6), nullable=True)
     
     # Relationships
     skills = db.relationship('Skill', backref='user', lazy=True, cascade='all, delete-orphan')
