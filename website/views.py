@@ -48,7 +48,7 @@ def send_otp_email(receiver_email, otp_code):
     current_app.logger.info(message)
 
     if sender_email == "your_email@gmail.com" or sender_password == "your_16_digit_app_password":
-        print("\n⚠️ WARNING: Email credentials not set! Using development mode. Check the terminal for the OTP.")
+        print("\n WARNING: Email credentials not set! Using development mode. Check the terminal for the OTP.")
         return True  # Allow registration for testing
 
     msg = MIMEText(f"Welcome to MMU OSSD!\n\nYour 6-digit verification code is: {otp_code}\n\nThis code will expire in 15 minutes.")
@@ -60,10 +60,10 @@ def send_otp_email(receiver_email, otp_code):
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(sender_email, sender_password)
             server.send_message(msg)
-        print(f"✓ OTP email automatically sent to {receiver_email}")
+        print(f" OTP email automatically sent to {receiver_email}")
         return True
     except Exception as e:
-        print(f"✗ Email Automation Error: {e}")
+        print(f" Email Automation Error: {e}")
         return False
 
 @views.route('/')
@@ -301,16 +301,20 @@ def api_register():
 
     pw_hash = generate_password_hash(password)
     
-    # --- MODIFIED: Generate OTP ---
+# --- MODIFIED: Generate OTP ---
     otp_code = f"{random.randint(0, 999999):06d}"
     
     try:
-        # --- MODIFIED: Added otp to new user creation ---
-        user = User(email=email, name=name, password_hash=pw_hash, otp=otp_code)
+        user = User(
+            email=email, 
+            name=name, 
+            password_hash=pw_hash, 
+            otp=otp_code,
+            interests=','.join(interests) if interests else ''
+        )
         db.session.add(user)
         db.session.commit()
         
-        # --- ADDED: Trigger Email ---
         if send_otp_email(email, otp_code):
             return jsonify({'success': True, 'message': 'Account created! Check email for OTP.'})
         else:
@@ -319,25 +323,14 @@ def api_register():
             return jsonify({'error': 'Failed to send verification email. Please try again.'}), 500
             
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': 'Email already registered'}), 409
-        user = User(
-            email=email, 
-            name=name, 
-            password_hash=pw_hash,
-            interests=','.join(interests) if interests else ''
-        )
-        db.session.add(user)
-        db.session.commit()
-    except Exception as e:
+        
         db.session.rollback()
         print(f"Registration error: {str(e)}")
+        
         if 'unique' in str(e).lower() or 'email' in str(e).lower():
             return jsonify({'error': 'Email already registered'}), 409
+            
         return jsonify({'error': f'Registration failed: {str(e)}'}), 400
-    
-    return jsonify({'success': True, 'message': 'Account created!'})
-
 
 @views.route('/api/login', methods=['POST'])
 def api_login():
