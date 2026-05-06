@@ -4,11 +4,18 @@ import smtplib
 import sys
 import logging
 from email.mime.text import MIMEText
+import random
+import smtplib
+import sys
+import logging
+from email.mime.text import MIMEText
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 from flask import Blueprint, render_template, request, redirect, url_for, current_app, flash, jsonify, session
-from .models import Question, QuestionComment, QuestionFavorite, QuestionLike, db, User, Skill, Badge, Comment, Project, ProjectImage, Suggestion, ProjectComment, CommentLabel, QuestionCommentImage, QuestionImage, JoinRequest
+
+# ADDED ProjectStar to the imports
+from .models import Question, QuestionComment, QuestionFavorite, QuestionLike, db, User, Skill, Badge, Comment, Project, ProjectImage, Suggestion, ProjectComment, CommentLabel, ProjectMember, ProjectStar, CommunityPost, CommunityPostLike, CommunityPostComment
 
 views = Blueprint('views', __name__)
 
@@ -28,11 +35,8 @@ def get_current_user():
     user = User.query.filter_by(email=email).first()
     return user
 
-# --- ADDED: Auto-Email Sending Function ---
+# --- Auto-Email Sending Function ---
 def send_otp_email(receiver_email, otp_code):
-    # =====================================================================
-    # ⚠️ 关键步骤: 在这里替换为你真实的 Gmail 邮箱和 16 位 Google App Password ⚠️
-    # =====================================================================
     sender_email = "kohkonghao4@gmail.com" 
     sender_password = "wlas kitq zrpa qpbb"
 
@@ -81,12 +85,12 @@ def login():
 def register():
     return render_template("register.html")
 
-# --- ADDED: Verify Page Route ---
+# --- Verify Page Route ---
 @views.route('/verify')
 def verify_page():
     return render_template("otp.html")
 
-# --- ADDED: New Endpoint for verifying the OTP ---
+# --- Endpoint for verifying the OTP ---
 @views.route('/api/verify_otp', methods=['POST'])
 def api_verify_otp():
     data = request.get_json(silent=True) or {}
@@ -103,7 +107,7 @@ def api_verify_otp():
         
     return jsonify({'error': 'Invalid code. Please check and try again.'}), 401
 
-# --- ADDED: Simple test route to display OTP ---
+# --- Simple test route to display OTP ---
 @views.route('/test_otp/<email>')
 def test_otp(email):
     user = User.query.filter_by(email=email).first()
@@ -143,7 +147,8 @@ def my_projects():
 
     own_projects = Project.query.filter_by(user_id=current_user.id).order_by(Project.created_at.desc()).all()
     
-    joined_projects = current_user.joined_projects
+    memberships = current_user.project_memberships.all()
+    joined_projects = [m.project for m in memberships]
 
     return render_template("My_Projects.html", own_projects=own_projects, joined_projects=joined_projects)
 
@@ -172,7 +177,18 @@ def qna_page():
 @views.route('/project/<int:project_id>')
 def project_page(project_id):
     project = Project.query.get_or_404(project_id)
-    return render_template("Project_Page.html", project=project, current_user=get_current_user())
+    current_user = get_current_user()
+    
+    current_user_role = None
+    if current_user:
+        if project.user_id == current_user.id:
+            current_user_role = 'owner'
+        else:
+            member_record = ProjectMember.query.filter_by(project_id=project.id, user_id=current_user.id).first()
+            if member_record:
+                current_user_role = member_record.role
+
+    return render_template("Project_Page.html", project=project, current_user=current_user, current_user_role=current_user_role)
 
 @views.route('/upload-success')
 def upload_success():
@@ -231,15 +247,20 @@ def edit_project(project_id):
 
     project = Project.query.get_or_404(project_id)
 
-    is_owner = (project.user_id == current_user.id)
-    is_member = (current_user in project.members)
+    current_user_role = None
+    if project.user_id == current_user.id:
+        current_user_role = 'owner'
+    else:
+        member_record = ProjectMember.query.filter_by(project_id=project.id, user_id=current_user.id).first()
+        if member_record:
+            current_user_role = member_record.role
 
-    if not (is_owner or is_member):
-        flash("Permission Denied: Only project owners and members can edit this project.", "error")
+    if current_user_role not in ['owner', 'admin']:
+        flash("Permission Denied: Only project owners and admins can edit this project.", "error")
         return redirect(url_for('views.project_page', project_id=project.id))
 
     if request.method == 'POST':
-        if is_owner:
+        if current_user_role == 'owner':
             project.project_name = request.form.get('project_name')
             project.repo_url = request.form.get('repo_url')
 
@@ -271,11 +292,17 @@ def edit_project(project_id):
         db.session.commit()
         return redirect(url_for('views.project_page', project_id=project.id))
 
-    return render_template("Edit_Project.html", project=project, current_user=current_user)
+    return render_template("Edit_Project.html", project=project, current_user=current_user, current_user_role=current_user_role)
 
 @views.route('/delete-project/<int:project_id>', methods=['POST'])
 def delete_project(project_id):
     project = Project.query.get_or_404(project_id)
+    current_user = get_current_user()
+    
+    if not current_user or project.user_id != current_user.id:
+        flash('Unauthorized Action.', category='error')
+        return redirect(url_for('views.my_projects'))
+        
     try:
         db.session.delete(project)
         db.session.commit()
@@ -303,7 +330,7 @@ def api_register():
 
     pw_hash = generate_password_hash(password)
     
-# --- MODIFIED: Generate OTP ---
+    # Generate OTP 
     otp_code = f"{random.randint(0, 999999):06d}"
     
     try:
@@ -348,7 +375,7 @@ def api_login():
        not check_password_hash(user.password_hash, password):
         return jsonify({'error': 'Invalid email or password'}), 401
 
-    # --- ADDED: Check if account is verified ---
+    # Check if account is verified
     if not user.is_verified:
         return jsonify({'error': 'Please verify your email first.'}), 403
     
@@ -376,7 +403,6 @@ def api_me():
 
 
 # Profile API  (all require login)
-
 
 @views.route('/api/profile', methods=['GET'])
 def get_profile():
@@ -567,6 +593,80 @@ def get_all_projects():
         'languages': p.languages,
         'created_at': p.created_at.isoformat(),
     } for p in projects])
+
+# --- ADDED: Real Feed API logic ---
+@views.route('/api/feed', methods=['GET'])
+def get_feed():
+    """Get community feed with real star counts and status"""
+    current_user_id = None
+    if 'user_email' in session:
+        u = User.query.filter_by(email=session['user_email']).first()
+        if u:
+            current_user_id = u.id
+
+    projects = Project.query.order_by(Project.created_at.desc()).limit(20).all()
+    
+    feed_data = []
+    for p in projects:
+        owner = User.query.get(p.user_id)
+        owner_name = owner.name if owner else "Unknown"
+        
+        langs = [l.strip() for l in p.languages.split(',')] if p.languages else ['Unknown']
+        primary_lang = langs[0] if langs else 'Unknown'
+        
+        # Calculate real total stars
+        total_stars = ProjectStar.query.filter_by(project_id=p.id).count()
+        
+        # Check if current user starred it
+        is_starred = False
+        if current_user_id:
+            is_starred = ProjectStar.query.filter_by(user_id=current_user_id, project_id=p.id).first() is not None
+            
+        feed_data.append({
+            'id': p.id,
+            'owner_name': owner_name,
+            'project_name': p.project_name,
+            'description': p.description or "No description provided.",
+            'primary_language': primary_lang,
+            'stars': total_stars,
+            'is_starred': is_starred,
+            'created_at': p.created_at.strftime('%b %d, %Y')
+        })
+        
+    return jsonify(feed_data)
+
+# --- ADDED: Toggle Star Action API ---
+@views.route('/api/project/<int:project_id>/star', methods=['POST'])
+def toggle_project_star(project_id):
+    """Toggle Star/Unstar action for a project"""
+    err = require_login()
+    if err: return err
+    
+    current_user = get_current_user()
+    
+    # Check if star already exists
+    existing_star = ProjectStar.query.filter_by(user_id=current_user.id, project_id=project_id).first()
+    
+    if existing_star:
+        # Unstar
+        db.session.delete(existing_star)
+        is_starred = False
+    else:
+        # Star
+        new_star = ProjectStar(user_id=current_user.id, project_id=project_id)
+        db.session.add(new_star)
+        is_starred = True
+        
+    db.session.commit()
+    
+    # Get updated total
+    total_stars = ProjectStar.query.filter_by(project_id=project_id).count()
+    
+    return jsonify({
+        'success': True, 
+        'is_starred': is_starred, 
+        'total_stars': total_stars
+    })
 
 
 # Suggestions API
@@ -1096,7 +1196,6 @@ def get_favorited_questions():
     return jsonify([_build_question_result(q, n, user.id) for q, n in rows])
 
 
-
 @views.route('/api/project/<int:project_id>/add_member', methods=['POST'])
 def add_member(project_id):
     err = require_login()
@@ -1105,9 +1204,12 @@ def add_member(project_id):
     current_user = get_current_user()
     project = Project.query.get_or_404(project_id)
 
-    # Security check: Only the project lead (creator) can add members
-    if project.user_id != current_user.id:
-        return jsonify({"error": "Unauthorized. Only the Project Lead can add members."}), 403
+    is_owner = (project.user_id == current_user.id)
+    member_record = ProjectMember.query.filter_by(project_id=project_id, user_id=current_user.id).first()
+    is_admin = (member_record and member_record.role == 'admin')
+
+    if not (is_owner or is_admin):
+        return jsonify({"error": "Unauthorized. Only the Project Lead or Admin can add members."}), 403
 
     data = request.get_json(silent=True) or {}
     email_to_add = data.get('email', '').strip().lower()
@@ -1120,14 +1222,108 @@ def add_member(project_id):
     if not user_to_add:
         return jsonify({"error": "User with this email not found"}), 404
 
-    if user_to_add in project.members:
+    existing_member = ProjectMember.query.filter_by(project_id=project_id, user_id=user_to_add.id).first()
+    if existing_member or project.user_id == user_to_add.id:
         return jsonify({"error": "User is already a member of this project"}), 400
 
-    # Add the user to the project's members list
-    project.members.append(user_to_add)
+    new_member = ProjectMember(user_id=user_to_add.id, project_id=project_id, role='member')
+    db.session.add(new_member)
     db.session.commit()
 
     return jsonify({"success": "Member added successfully!", "user_name": user_to_add.name})
+
+# ---------------------------------------------------------------------------
+# Project Member Management API
+# ---------------------------------------------------------------------------
+
+@views.route('/api/project/<int:project_id>/member/<int:user_id>/role', methods=['PUT'])
+def update_member_role(project_id, user_id):
+    """Change member role (Only Owner can execute this)"""
+    err = require_login()
+    if err: return err
+    
+    project = Project.query.get_or_404(project_id)
+    current_user = get_current_user()
+    
+    if project.user_id != current_user.id:
+        return jsonify({"error": "Unauthorized. Only the Project Lead can manage admin roles."}), 403
+        
+    member_record = ProjectMember.query.filter_by(project_id=project_id, user_id=user_id).first()
+    if not member_record:
+        return jsonify({"error": "Member not found in this project."}), 404
+        
+    data = request.get_json(silent=True) or {}
+    new_role = data.get('role')
+    
+    if new_role not in ['admin', 'member']:
+        return jsonify({"error": "Invalid role specified."}), 400
+        
+    member_record.role = new_role
+    db.session.commit()
+    return jsonify({"success": True, "message": f"Role updated to {new_role}"})
+
+
+@views.route('/api/project/<int:project_id>/member/<int:user_id>', methods=['DELETE'])
+def remove_member(project_id, user_id):
+    """Remove a member from the project (or leave project)"""
+    err = require_login()
+    if err: return err
+    
+    project = Project.query.get_or_404(project_id)
+    current_user = get_current_user()
+    
+    is_owner = (project.user_id == current_user.id)
+    current_member_record = ProjectMember.query.filter_by(project_id=project_id, user_id=current_user.id).first()
+    is_admin = (current_member_record and current_member_record.role == 'admin')
+    
+    target_record = ProjectMember.query.filter_by(project_id=project_id, user_id=user_id).first()
+    if not target_record:
+        return jsonify({"error": "Member not found in this project."}), 404
+        
+    # Validation Rules
+    # Allow users to remove themselves (Leave Project)
+    is_self = (current_user.id == user_id)
+    
+    if not is_owner and not is_self:
+        if not is_admin:
+            return jsonify({"error": "Unauthorized. You do not have permission to remove members."}), 403
+        if target_record.role == 'admin':
+            return jsonify({"error": "Unauthorized. Admins cannot remove other Admins."}), 403
+            
+    db.session.delete(target_record)
+    db.session.commit()
+    return jsonify({"success": True, "message": "Member removed successfully."})
+
+@views.route('/api/project/<int:project_id>/transfer_ownership/<int:user_id>', methods=['PUT'])
+def transfer_ownership(project_id, user_id):
+    """Transfer project ownership to another member (Owner only)"""
+    err = require_login()
+    if err: return err
+     
+    project = Project.query.get_or_404(project_id)
+    current_user = get_current_user()
+    
+    # Security: Only the actual owner can transfer ownership
+    if project.user_id != current_user.id:
+        return jsonify({"error": "Unauthorized. Only the Project Lead can transfer ownership."}), 403
+        
+    # Verify the target user is a member of the project
+    target_member = ProjectMember.query.filter_by(project_id=project_id, user_id=user_id).first()
+    if not target_member:
+        return jsonify({"error": "Target user must be a member of the project."}), 404
+        
+    # 1. Demote the current owner to an 'admin' in ProjectMember table
+    new_admin_record = ProjectMember(user_id=current_user.id, project_id=project_id, role='admin')
+    db.session.add(new_admin_record)
+    
+    # 2. Assign the project's user_id to the new owner
+    project.user_id = user_id
+    
+    # 3. Remove the new owner from the ProjectMember table (since they are now the Lead)
+    db.session.delete(target_member)
+    
+    db.session.commit()
+    return jsonify({"success": True, "message": "Ownership transferred successfully."})
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -1308,12 +1504,13 @@ def create_project_comment(project_id):
     if comment_type not in ['normal', 'issue', 'suggestion']:
         return jsonify({'error': 'Invalid comment type'}), 400
     
-    # Determine user role
     user_role = 'user'
     if current_user.id == project.user_id:
         user_role = 'owner'
-    elif current_user in project.members:
-        user_role = 'team-member'
+    else:
+        member_record = ProjectMember.query.filter_by(project_id=project.id, user_id=current_user.id).first()
+        if member_record:
+            user_role = 'team-member'
     
     comment = ProjectComment(
         project_id=project_id,
@@ -2056,3 +2253,124 @@ def save_interest():
         'message': 'Interests updated successfully',
         'interests': interests
     })
+
+# =====================================================================
+# API: Community Timeline Posts
+# =====================================================================
+
+@views.route('/api/community_posts', methods=['GET'])
+def get_community_posts():
+    """Fetch the latest posts for the community feed including attachments, likes, and comments"""
+    current_user = get_current_user()
+    current_user_id = current_user.id if current_user else None
+
+    posts = CommunityPost.query.order_by(CommunityPost.created_at.desc()).limit(30).all()
+    
+    result = []
+    for p in posts:
+        proj_data = None
+        if p.attached_project:
+            proj_data = {'id': p.attached_project.id, 'name': p.attached_project.project_name}
+            
+        # Calculate interactions
+        like_count = len(p.likes)
+        comment_count = len(p.comments)
+        user_liked = False
+        if current_user_id:
+            user_liked = any(like.user_id == current_user_id for like in p.likes)
+            
+        result.append({
+            'id': p.id,
+            'user_name': p.author.name if p.author else 'Unknown',
+            'content': p.content,
+            'category': p.category,
+            'created_at': p.created_at.isoformat(),
+            'image_url': f"/static/uploads/{p.image_path}" if p.image_path else None,
+            'link_url': p.link_url,
+            'attached_project': proj_data,
+            'like_count': like_count,
+            'comment_count': comment_count,
+            'user_liked': user_liked
+        })
+    return jsonify(result)
+
+@views.route('/api/community_posts', methods=['POST'])
+def create_community_post():
+    """Create a new post with optional image, link, and project attachments"""
+    err = require_login()
+    if err: return err
+    
+    current_user = get_current_user()
+    content = request.form.get('content', '').strip()
+    category = request.form.get('category', 'Discussion')
+    link_url = request.form.get('link_url', '').strip()
+    attached_project_id = request.form.get('attached_project_id')
+    
+    if not content: return jsonify({'error': 'Post content cannot be empty'}), 400
+        
+    post = CommunityPost(user_id=current_user.id, content=content, category=category)
+    if link_url: post.link_url = link_url
+        
+    if attached_project_id and attached_project_id.isdigit():
+        proj = Project.query.get(int(attached_project_id))
+        if proj: post.attached_project_id = proj.id
+            
+    if 'image' in request.files:
+        file = request.files['image']
+        if file and file.filename and allowed_file(file.filename):
+            ext = file.filename.rsplit('.', 1)[1].lower()
+            filename = f"post_{uuid.uuid4().hex}.{ext}"
+            file.save(os.path.join(UPLOAD_FOLDER, filename))
+            post.image_path = filename
+
+    db.session.add(post)
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Posted successfully'})
+
+@views.route('/api/community_posts/<int:post_id>/like', methods=['POST'])
+def toggle_community_post_like(post_id):
+    """Toggle Like/Unlike for a community post"""
+    err = require_login()
+    if err: return err
+    current_user = get_current_user()
+    
+    existing_like = CommunityPostLike.query.filter_by(user_id=current_user.id, post_id=post_id).first()
+    if existing_like:
+        db.session.delete(existing_like)
+        liked = False
+    else:
+        new_like = CommunityPostLike(user_id=current_user.id, post_id=post_id)
+        db.session.add(new_like)
+        liked = True
+        
+    db.session.commit()
+    count = CommunityPostLike.query.filter_by(post_id=post_id).count()
+    return jsonify({'success': True, 'liked': liked, 'like_count': count})
+
+@views.route('/api/community_posts/<int:post_id>/comments', methods=['GET', 'POST'])
+def manage_community_post_comments(post_id):
+    """Get or Create comments for a specific post"""
+    err = require_login()
+    if err: return err
+    
+    if request.method == 'GET':
+        comments = CommunityPostComment.query.filter_by(post_id=post_id).order_by(CommunityPostComment.created_at.asc()).all()
+        result = [{
+            'id': c.id,
+            'user_name': c.author.name,
+            'content': c.content,
+            'created_at': c.created_at.isoformat()
+        } for c in comments]
+        return jsonify(result)
+        
+    if request.method == 'POST':
+        current_user = get_current_user()
+        data = request.get_json(silent=True) or {}
+        content = data.get('content', '').strip()
+        
+        if not content: return jsonify({'error': 'Comment cannot be empty'}), 400
+        
+        comment = CommunityPostComment(post_id=post_id, user_id=current_user.id, content=content)
+        db.session.add(comment)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Comment added'})
