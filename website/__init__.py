@@ -21,9 +21,8 @@ def create_app():
 
     db.init_app(app)
 
-    from .views import views
-    from .models import (User, Skill, Badge, Comment, Project, ProjectImage, Suggestion, ProjectComment, CommentLabel,
-Question, QuestionLike, QuestionFavorite, QuestionComment, QuestionImage, QuestionCommentImage)
+    from . views import views
+    from . models import (User, Skill, Badge, Comment, Project, ProjectImage, Suggestion, ProjectComment, CommentLabel, Question, QuestionLike, QuestionFavorite, QuestionComment, QuestionImage )
 
     app.register_blueprint(views, url_prefix='/')
 
