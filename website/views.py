@@ -15,7 +15,7 @@ import uuid
 from flask import Blueprint, render_template, request, redirect, url_for, current_app, flash, jsonify, session
 
 # ADDED ProjectStar to the imports
-from .models import Question, QuestionComment, QuestionFavorite, QuestionLike, db, User, Skill, Badge, Comment, Project, ProjectImage, Suggestion, ProjectComment, CommentLabel, ProjectMember, ProjectStar, CommunityPost, CommunityPostLike, CommunityPostComment
+from .models import Question, QuestionComment, QuestionFavorite, QuestionLike, db, User, Skill, Badge, Comment, Project, ProjectImage, Suggestion, ProjectComment, CommentLabel, ProjectMember, ProjectStar, CommunityPost, CommunityPostLike, CommunityPostComment, JoinRequest, QuestionImage, QuesrionCommentImage
 
 views = Blueprint('views', __name__)
 
@@ -179,6 +179,11 @@ def project_page(project_id):
     project = Project.query.get_or_404(project_id)
     current_user = get_current_user()
     
+    if project.views is None:
+        project.views = 0
+    project.views += 1
+    db.session.commit()
+
     current_user_role = None
     if current_user:
         if project.user_id == current_user.id:
@@ -267,6 +272,7 @@ def edit_project(project_id):
         project.languages = request.form.get('languages')
         project.roles_needed = request.form.get('roles_needed')
         project.description = request.form.get('description')
+        project.status = request.form.get('status')
 
         images_to_delete = request.form.getlist('delete_images')
         for img_id in images_to_delete:
@@ -592,6 +598,7 @@ def get_all_projects():
         'contributors': p.contributors,
         'languages': p.languages,
         'created_at': p.created_at.isoformat(),
+        'views': p.views or 0,
     } for p in projects])
 
 # --- ADDED: Real Feed API logic ---
@@ -2302,7 +2309,7 @@ def create_community_post():
     
     current_user = get_current_user()
     content = request.form.get('content', '').strip()
-    category = request.form.get('category', 'Discussion')
+    category = request.form.get('category', 'Posts')
     link_url = request.form.get('link_url', '').strip()
     attached_project_id = request.form.get('attached_project_id')
     
