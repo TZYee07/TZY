@@ -3,14 +3,13 @@ import random
 import smtplib
 import sys
 import logging
+import json
 from email.mime.text import MIMEText
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 from flask import Blueprint, render_template, request, redirect, url_for, current_app, flash, jsonify, session
-
-# ADDED ProjectStar to the imports
-from .models import Question, QuestionComment, QuestionFavorite, QuestionLike, db, User, Skill, Badge, Comment, Project, ProjectImage, Suggestion, ProjectComment, CommentLabel, ProjectMember, ProjectStar, CommunityPost, CommunityPostLike, CommunityPostComment
+from .models import Question, QuestionComment, QuestionFavorite, QuestionLike, db, User, Skill, Badge, Comment, Project, ProjectImage, Suggestion, ProjectComment, CommentLabel, QuestionCommentImage, QuestionImage, JoinRequest, ProjectMember
 
 views = Blueprint('views', __name__)
 
@@ -30,8 +29,24 @@ def get_current_user():
     user = User.query.filter_by(email=email).first()
     return user
 
-# --- Auto-Email Sending Function ---
+def parse_interests(interests_str):
+    """Parse interests from JSON or comma-separated format"""
+    if not interests_str:
+        return {'dev_interests': [], 'lang_interests': []}
+    
+    try:
+        # Try parsing as JSON first
+        return json.loads(interests_str)
+    except:
+        # Fallback to comma-separated format (legacy)
+        all_interests = [i.strip() for i in interests_str.split(',') if i.strip()]
+        return {'dev_interests': all_interests, 'lang_interests': []}
+
+# --- ADDED: Auto-Email Sending Function ---
 def send_otp_email(receiver_email, otp_code):
+    # =====================================================================
+    # ⚠️ 关键步骤: 在这里替换为你真实的 Gmail 邮箱和 16 位 Google App Password ⚠️
+    # =====================================================================
     sender_email = "kohkonghao4@gmail.com" 
     sender_password = "wlas kitq zrpa qpbb"
 
@@ -80,12 +95,12 @@ def login():
 def register():
     return render_template("register.html")
 
-# --- Verify Page Route ---
+# --- ADDED: Verify Page Route ---
 @views.route('/verify')
 def verify_page():
     return render_template("otp.html")
 
-# --- Endpoint for verifying the OTP ---
+# --- ADDED: New Endpoint for verifying the OTP ---
 @views.route('/api/verify_otp', methods=['POST'])
 def api_verify_otp():
     data = request.get_json(silent=True) or {}
@@ -102,7 +117,7 @@ def api_verify_otp():
         
     return jsonify({'error': 'Invalid code. Please check and try again.'}), 401
 
-# --- Simple test route to display OTP ---
+# --- ADDED: Simple test route to display OTP ---
 @views.route('/test_otp/<email>')
 def test_otp(email):
     user = User.query.filter_by(email=email).first()
@@ -142,14 +157,19 @@ def my_projects():
 
     own_projects = Project.query.filter_by(user_id=current_user.id).order_by(Project.created_at.desc()).all()
     
-    memberships = current_user.project_memberships.all()
-    joined_projects = [m.project for m in memberships]
+    joined_projects = current_user.joined_projects
 
     return render_template("My_Projects.html", own_projects=own_projects, joined_projects=joined_projects)
 
 @views.route('/profile')
 def profile():
     return render_template("Profile.html")
+
+@views.route('/user/<int:user_id>')
+def view_user_profile(user_id):
+    """View another user's profile"""
+    user = User.query.get_or_404(user_id)
+    return render_template("User_Profile.html", profile_user=user, current_user=get_current_user())
 
 @views.route('/qna/delete/<int:question_id>')
 def qna_delete_page(question_id):
@@ -174,6 +194,11 @@ def project_page(project_id):
     project = Project.query.get_or_404(project_id)
     current_user = get_current_user()
     
+    if project.views is None:
+        project.views = 0
+    project.views += 1
+    db.session.commit()
+
     current_user_role = None
     if current_user:
         if project.user_id == current_user.id:
@@ -262,6 +287,7 @@ def edit_project(project_id):
         project.languages = request.form.get('languages')
         project.roles_needed = request.form.get('roles_needed')
         project.description = request.form.get('description')
+        project.status = request.form.get('status')
 
         images_to_delete = request.form.getlist('delete_images')
         for img_id in images_to_delete:
@@ -292,12 +318,6 @@ def edit_project(project_id):
 @views.route('/delete-project/<int:project_id>', methods=['POST'])
 def delete_project(project_id):
     project = Project.query.get_or_404(project_id)
-    current_user = get_current_user()
-    
-    if not current_user or project.user_id != current_user.id:
-        flash('Unauthorized Action.', category='error')
-        return redirect(url_for('views.my_projects'))
-        
     try:
         db.session.delete(project)
         db.session.commit()
@@ -310,21 +330,29 @@ def delete_project(project_id):
 
 @views.route('/api/register', methods=['POST'])
 def api_register():
+    import json
     data     = request.get_json(silent=True) or {}
     email    = data.get('email', '').strip().lower()
     name     = data.get('name', '').strip()
     password = data.get('password', '')
-    interests = data.get('interests', [])
+    dev_interests = data.get('dev_interests', [])
+    lang_interests = data.get('lang_interests', [])
 
     if not email or not password or not name:
         return jsonify({'error': 'All fields are required'}), 400
     if len(password) < 6:
         return jsonify({'error': 'Password must be at least 6 characters'}), 400
+    if not (email.endswith('@mmu.edu.my') or email.endswith('@student.mmu.edu.my')):
+        return jsonify({'error': 'Only MMU email addresses (@mmu.edu.my or @student.mmu.edu.my) are allowed'}), 400
 
     pw_hash = generate_password_hash(password)
     
-    # Generate OTP 
+# --- MODIFIED: Generate OTP and store interests as JSON ---
     otp_code = f"{random.randint(0, 999999):06d}"
+    interests_json = json.dumps({
+        'dev_interests': dev_interests if dev_interests else [],
+        'lang_interests': lang_interests if lang_interests else []
+    })
     
     try:
         user = User(
@@ -332,7 +360,7 @@ def api_register():
             name=name, 
             password_hash=pw_hash, 
             otp=otp_code,
-            interests=','.join(interests) if interests else ''
+            interests=interests_json
         )
         db.session.add(user)
         db.session.commit()
@@ -360,12 +388,15 @@ def api_login():
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
 
+    if not (email.endswith('@mmu.edu.my') or email.endswith('@student.mmu.edu.my')):
+        return jsonify({'error': 'Only MMU email addresses (@mmu.edu.my or @student.mmu.edu.my) are allowed'}), 400
+
     user = User.query.filter_by(email=email).first()
     if not user or not user.password_hash or \
        not check_password_hash(user.password_hash, password):
         return jsonify({'error': 'Invalid email or password'}), 401
 
-    # Check if account is verified
+    # --- ADDED: Check if account is verified ---
     if not user.is_verified:
         return jsonify({'error': 'Please verify your email first.'}), 403
     
@@ -394,6 +425,7 @@ def api_me():
 
 # Profile API  (all require login)
 
+
 @views.route('/api/profile', methods=['GET'])
 def get_profile():
     err = require_login()
@@ -409,22 +441,55 @@ def get_profile():
     badges = Badge.query.filter_by(user_id=user.id).all()
     
     avatar_url = f"/static/uploads/{user.avatar_path}" if user.avatar_path else ''
-    
-    interests_list = [i.strip() for i in user.interests.split(',') if i.strip()] if user.interests else []
+    interests_data = parse_interests(user.interests)
+    # Combine both interest types for frontend
+    combined_interests = interests_data.get('dev_interests', []) + interests_data.get('lang_interests', [])
 
     return jsonify({
-        'email':      user.email,
-        'name':       user.name,
-        'faculty':    user.faculty,
-        'bio':        user.bio or '',
-        'avatar_url': avatar_url,
-        'rank':       user.rank,
-        'karma':      user.karma,
-        'skills':     [s.skill for s in skills],
-        'badges':     [b.badge for b in badges],
-        'interests':  interests_list,
+        'id':             user.id,
+        'email':          user.email,
+        'name':           user.name,
+        'faculty':        user.faculty,
+        'bio':            user.bio or '',
+        'avatar_url':     avatar_url,
+        'rank':           user.rank,
+        'karma':          user.karma,
+        'skills':         [s.skill for s in skills],
+        'badges':         [b.badge for b in badges],
+        'interests':      combined_interests,
+        'dev_interests':  interests_data.get('dev_interests', []),
+        'lang_interests': interests_data.get('lang_interests', []),
     })
 
+
+@views.route('/api/user/<int:user_id>', methods=['GET'])
+def get_user_profile(user_id):
+    """Get any user's profile data"""
+    user = User.query.get_or_404(user_id)
+    
+    skills = Skill.query.filter_by(user_id=user.id).all()
+    badges = Badge.query.filter_by(user_id=user.id).all()
+    
+    avatar_url = f"/static/uploads/{user.avatar_path}" if user.avatar_path else ''
+    interests_data = parse_interests(user.interests)
+    # Combine both interest types for frontend
+    combined_interests = interests_data.get('dev_interests', []) + interests_data.get('lang_interests', [])
+
+    return jsonify({
+        'id':             user.id,
+        'email':          user.email,
+        'name':           user.name,
+        'faculty':        user.faculty,
+        'bio':            user.bio or '',
+        'avatar_url':     avatar_url,
+        'rank':           user.rank,
+        'karma':          user.karma,
+        'skills':         [s.skill for s in skills],
+        'badges':         [b.badge for b in badges],
+        'interests':      combined_interests,
+        'dev_interests':  interests_data.get('dev_interests', []),
+        'lang_interests': interests_data.get('lang_interests', []),
+    })
 
 @views.route('/api/profile', methods=['PUT'])
 def update_profile():
@@ -438,6 +503,10 @@ def update_profile():
     faculty = data.get('faculty')
     bio     = data.get('bio', '')
     skills  = data.get('skills', [])
+    # Handle combined interests from frontend
+    interests = data.get('interests', [])
+    dev_interests = data.get('dev_interests', interests)
+    lang_interests = data.get('lang_interests', [])
 
     user = User.query.filter_by(email=email).first()
     if not user:
@@ -457,9 +526,13 @@ def update_profile():
                 skill_obj = Skill(user_id=user.id, skill=skill.strip())
                 db.session.add(skill_obj)
 
-    interests = data.get('interests')
-    if interests is not None:
-        user.interests = ','.join([i.strip() for i in interests if i.strip()])
+    # Update interests as JSON
+    if dev_interests is not None or lang_interests is not None:
+        interests_json = json.dumps({
+            'dev_interests': dev_interests if dev_interests else [],
+            'lang_interests': lang_interests if lang_interests else []
+        })
+        user.interests = interests_json
 
     db.session.commit()
 
@@ -489,7 +562,7 @@ def upload_avatar():
     user.avatar_path = filename
     db.session.commit()
 
-    return jsonify({'success': True, 'avatar_url': f'/uploads/{filename}'})
+    return jsonify({'success': True, 'avatar_url': f'/static/uploads/{filename}'})
 
 
 # Comments API
@@ -583,80 +656,6 @@ def get_all_projects():
         'languages': p.languages,
         'created_at': p.created_at.isoformat(),
     } for p in projects])
-
-# --- ADDED: Real Feed API logic ---
-@views.route('/api/feed', methods=['GET'])
-def get_feed():
-    """Get community feed with real star counts and status"""
-    current_user_id = None
-    if 'user_email' in session:
-        u = User.query.filter_by(email=session['user_email']).first()
-        if u:
-            current_user_id = u.id
-
-    projects = Project.query.order_by(Project.created_at.desc()).limit(20).all()
-    
-    feed_data = []
-    for p in projects:
-        owner = User.query.get(p.user_id)
-        owner_name = owner.name if owner else "Unknown"
-        
-        langs = [l.strip() for l in p.languages.split(',')] if p.languages else ['Unknown']
-        primary_lang = langs[0] if langs else 'Unknown'
-        
-        # Calculate real total stars
-        total_stars = ProjectStar.query.filter_by(project_id=p.id).count()
-        
-        # Check if current user starred it
-        is_starred = False
-        if current_user_id:
-            is_starred = ProjectStar.query.filter_by(user_id=current_user_id, project_id=p.id).first() is not None
-            
-        feed_data.append({
-            'id': p.id,
-            'owner_name': owner_name,
-            'project_name': p.project_name,
-            'description': p.description or "No description provided.",
-            'primary_language': primary_lang,
-            'stars': total_stars,
-            'is_starred': is_starred,
-            'created_at': p.created_at.strftime('%b %d, %Y')
-        })
-        
-    return jsonify(feed_data)
-
-# --- ADDED: Toggle Star Action API ---
-@views.route('/api/project/<int:project_id>/star', methods=['POST'])
-def toggle_project_star(project_id):
-    """Toggle Star/Unstar action for a project"""
-    err = require_login()
-    if err: return err
-    
-    current_user = get_current_user()
-    
-    # Check if star already exists
-    existing_star = ProjectStar.query.filter_by(user_id=current_user.id, project_id=project_id).first()
-    
-    if existing_star:
-        # Unstar
-        db.session.delete(existing_star)
-        is_starred = False
-    else:
-        # Star
-        new_star = ProjectStar(user_id=current_user.id, project_id=project_id)
-        db.session.add(new_star)
-        is_starred = True
-        
-    db.session.commit()
-    
-    # Get updated total
-    total_stars = ProjectStar.query.filter_by(project_id=project_id).count()
-    
-    return jsonify({
-        'success': True, 
-        'is_starred': is_starred, 
-        'total_stars': total_stars
-    })
 
 
 # Suggestions API
@@ -769,13 +768,16 @@ def get_questions():
             user_faved = QuestionFavorite.query.filter_by(
                 user_id=current_user_id, question_id=q.id).first() is not None
 
+        image_urls = [f'/static/uploads/{img.image_path}' for img in q.images]
+
         result.append({
             'id':           q.id,
             'user_id':      q.user_id,
             'author_name':  author_name,
             'title':        q.title,
             'body':         q.body,
-            'image_url':    f'/uploads/{q.image_path}' if q.image_path else '',
+            'image_url':    f'/static/uploads/{q.image_path}' if q.image_path else '',
+            'image_urls':   image_urls,
             'created_at':   q.created_at.isoformat(),
             'like_count':   like_count,
             'fav_count':    fav_count,
@@ -815,14 +817,16 @@ def post_question():
     user = User.query.filter_by(email=session['user_email']).first()
     q = Question(user_id=user.id, title=title, body=body)
 
-    # Handle optional image
-    if 'image' in request.files:
-        file = request.files['image']
-        if file and file.filename and allowed_file(file.filename):
-            ext = file.filename.rsplit('.', 1)[1].lower()
-            filename = f"q_{uuid.uuid4().hex}.{ext}"
-            file.save(os.path.join(UPLOAD_FOLDER, filename))
-            q.image_path = filename
+    # Handle optional multiple images
+    if 'images' in request.files:
+        files = request.files.getlist('images')
+        for file in files:
+            if file and file.filename and allowed_file(file.filename):
+                ext = file.filename.rsplit('.', 1)[1].lower()
+                filename = f"q_{uuid.uuid4().hex}.{ext}"
+                file.save(os.path.join(UPLOAD_FOLDER, filename))
+                img = QuestionImage(image_path=filename)
+                q.images.append(img)
 
     db.session.add(q)
     db.session.commit()
@@ -844,6 +848,96 @@ def delete_question(question_id):
         return jsonify({'error': 'Not authorised'}), 403
 
     db.session.delete(q)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@views.route('/api/questions/<int:question_id>', methods=['PUT'])
+def edit_question(question_id):
+    err = require_login()
+    if err:
+        return err
+
+    user = User.query.filter_by(email=session['user_email']).first()
+    q = Question.query.get(question_id)
+
+    if not q:
+        return jsonify({'error': 'Question not found'}), 404
+    if q.user_id != user.id:
+        return jsonify({'error': 'Not authorised'}), 403
+
+    # Support multipart (with images) and plain JSON
+    if request.content_type and 'multipart' in request.content_type:
+        title = request.form.get('title', '').strip()
+        body = request.form.get('body', '').strip()
+    else:
+        data = request.get_json(silent=True) or {}
+        title = data.get('title', '').strip()
+        body = data.get('body', '').strip()
+
+    if not title:
+        return jsonify({'error': 'Title is required'}), 400
+    if not body:
+        return jsonify({'error': 'Question body is required'}), 400
+    if len(title) > 300:
+        return jsonify({'error': 'Title too long (max 300 chars)'}), 400
+    if len(body) > 5000:
+        return jsonify({'error': 'Body too long (max 5000 chars)'}), 400
+
+    q.title = title
+    q.body = body
+
+    # Handle optional new images
+    if 'images' in request.files:
+        files = request.files.getlist('images')
+        for file in files:
+            if file and file.filename and allowed_file(file.filename):
+                ext = file.filename.rsplit('.', 1)[1].lower()
+                filename = f"q_{uuid.uuid4().hex}.{ext}"
+                file.save(os.path.join(UPLOAD_FOLDER, filename))
+                img = QuestionImage(image_path=filename)
+                q.images.append(img)
+
+    db.session.commit()
+    return jsonify({'success': True, 'id': q.id})
+
+
+@views.route('/api/question-images/<int:image_id>', methods=['DELETE'])
+def delete_question_image(image_id):
+    err = require_login()
+    if err:
+        return err
+
+    user = User.query.filter_by(email=session['user_email']).first()
+    img = QuestionImage.query.get(image_id)
+    if not img:
+        return jsonify({'error': 'Image not found'}), 404
+    
+    q = img.question
+    if q.user_id != user.id:
+        return jsonify({'error': 'Not authorised'}), 403
+
+    db.session.delete(img)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@views.route('/api/comment-images/<int:image_id>', methods=['DELETE'])
+def delete_comment_image(image_id):
+    err = require_login()
+    if err:
+        return err
+
+    user = User.query.filter_by(email=session['user_email']).first()
+    img = QuestionCommentImage.query.get(image_id)
+    if not img:
+        return jsonify({'error': 'Image not found'}), 404
+    
+    c = img.comment
+    if c.user_id != user.id:
+        return jsonify({'error': 'Not authorised'}), 403
+
+    db.session.delete(img)
     db.session.commit()
     return jsonify({'success': True})
 
@@ -907,11 +1001,13 @@ def get_question_comments(question_id):
 
     result = [{
         'id':          c.id,
+        'author_id':   c.user_id,
         'author_name': name,
         'body':        c.body,
         'parent_id':   c.parent_id,
         'created_at':  c.created_at.isoformat(),
         'is_owner':    (current_user_id == c.user_id),
+        'image_urls':  [f'/static/uploads/{img.image_path}' for img in c.images],
     } for c, name in rows]
 
     return jsonify(result)
@@ -923,8 +1019,12 @@ def post_question_comment(question_id):
     if err:
         return err
 
-    data = request.get_json(silent=True) or {}
-    body = data.get('body', '').strip()
+    # Support multipart (with images) and plain JSON
+    if request.content_type and 'multipart' in request.content_type:
+        body = request.form.get('body', '').strip()
+    else:
+        data = request.get_json(silent=True) or {}
+        body = data.get('body', '').strip()
 
     if not body:
         return jsonify({'error': 'Comment cannot be empty'}), 400
@@ -935,7 +1035,13 @@ def post_question_comment(question_id):
     if not q:
         return jsonify({'error': 'Question not found'}), 404
 
-    parent_id = data.get('parent_id', None)
+    parent_id = None
+    if request.content_type and 'multipart' in request.content_type:
+        parent_id = request.form.get('parent_id', None)
+    else:
+        data = request.get_json(silent=True) or {}
+        parent_id = data.get('parent_id', None)
+    
     if parent_id:
         parent = QuestionComment.query.get(parent_id)
         if not parent or parent.question_id != question_id:
@@ -943,6 +1049,18 @@ def post_question_comment(question_id):
 
     user = User.query.filter_by(email=session['user_email']).first()
     c = QuestionComment(user_id=user.id, question_id=question_id, body=body, parent_id=parent_id)
+    
+    # Handle optional multiple images
+    if 'images' in request.files:
+        files = request.files.getlist('images')
+        for file in files:
+            if file and file.filename and allowed_file(file.filename):
+                ext = file.filename.rsplit('.', 1)[1].lower()
+                filename = f"c_{uuid.uuid4().hex}.{ext}"
+                file.save(os.path.join(UPLOAD_FOLDER, filename))
+                img = QuestionCommentImage(image_path=filename)
+                c.images.append(img)
+    
     db.session.add(c)
     db.session.commit()
     return jsonify({'success': True, 'id': c.id})
@@ -988,8 +1106,12 @@ def edit_question_comment(question_id, comment_id):
     if c.user_id != user.id:
         return jsonify({'error': 'Not authorised'}), 403
 
-    data = request.get_json(silent=True) or {}
-    body = data.get('body', '').strip()
+    # Support multipart (with images) and plain JSON
+    if request.content_type and 'multipart' in request.content_type:
+        body = request.form.get('body', '').strip()
+    else:
+        data = request.get_json(silent=True) or {}
+        body = data.get('body', '').strip()
 
     if not body:
         return jsonify({'error': 'Comment cannot be empty'}), 400
@@ -997,6 +1119,18 @@ def edit_question_comment(question_id, comment_id):
         return jsonify({'error': 'Comment too long (max 1000 chars)'}), 400
 
     c.body = body
+    
+    # Handle optional new images
+    if 'images' in request.files:
+        files = request.files.getlist('images')
+        for file in files:
+            if file and file.filename and allowed_file(file.filename):
+                ext = file.filename.rsplit('.', 1)[1].lower()
+                filename = f"c_{uuid.uuid4().hex}.{ext}"
+                file.save(os.path.join(UPLOAD_FOLDER, filename))
+                img = QuestionCommentImage(image_path=filename)
+                c.images.append(img)
+    
     db.session.commit()
     return jsonify({'success': True, 'body': c.body})
 
@@ -1011,10 +1145,12 @@ def _build_question_result(q, author_name, current_user_id):
     cmt_count  = QuestionComment.query.filter_by(question_id=q.id).count()
     user_liked = QuestionLike.query.filter_by(user_id=current_user_id, question_id=q.id).first() is not None
     user_faved = QuestionFavorite.query.filter_by(user_id=current_user_id, question_id=q.id).first() is not None
+    image_urls = [f'/static/uploads/{img.image_path}' for img in q.images]
     return {
         'id': q.id, 'user_id': q.user_id, 'author_name': author_name,
         'title': q.title, 'body': q.body,
-        'image_url': f'/uploads/{q.image_path}' if q.image_path else '',
+        'image_url': f'/static/uploads/{q.image_path}' if q.image_path else '',
+        'image_urls': image_urls,
         'created_at': q.created_at.isoformat(),
         'like_count': like_count, 'fav_count': fav_count, 'comment_count': cmt_count,
         'user_liked': user_liked, 'user_faved': user_faved,
@@ -1050,6 +1186,7 @@ def get_favorited_questions():
     return jsonify([_build_question_result(q, n, user.id) for q, n in rows])
 
 
+
 @views.route('/api/project/<int:project_id>/add_member', methods=['POST'])
 def add_member(project_id):
     err = require_login()
@@ -1058,12 +1195,9 @@ def add_member(project_id):
     current_user = get_current_user()
     project = Project.query.get_or_404(project_id)
 
-    is_owner = (project.user_id == current_user.id)
-    member_record = ProjectMember.query.filter_by(project_id=project_id, user_id=current_user.id).first()
-    is_admin = (member_record and member_record.role == 'admin')
-
-    if not (is_owner or is_admin):
-        return jsonify({"error": "Unauthorized. Only the Project Lead or Admin can add members."}), 403
+    # Security check: Only the project lead (creator) can add members
+    if project.user_id != current_user.id:
+        return jsonify({"error": "Unauthorized. Only the Project Lead can add members."}), 403
 
     data = request.get_json(silent=True) or {}
     email_to_add = data.get('email', '').strip().lower()
@@ -1076,108 +1210,143 @@ def add_member(project_id):
     if not user_to_add:
         return jsonify({"error": "User with this email not found"}), 404
 
-    existing_member = ProjectMember.query.filter_by(project_id=project_id, user_id=user_to_add.id).first()
-    if existing_member or project.user_id == user_to_add.id:
+    if user_to_add in project.members:
         return jsonify({"error": "User is already a member of this project"}), 400
 
-    new_member = ProjectMember(user_id=user_to_add.id, project_id=project_id, role='member')
-    db.session.add(new_member)
+    # Add the user to the project's members list
+    project.members.append(user_to_add)
     db.session.commit()
 
     return jsonify({"success": "Member added successfully!", "user_name": user_to_add.name})
 
-# ---------------------------------------------------------------------------
-# Project Member Management API
-# ---------------------------------------------------------------------------
 
-@views.route('/api/project/<int:project_id>/member/<int:user_id>/role', methods=['PUT'])
-def update_member_role(project_id, user_id):
-    """Change member role (Only Owner can execute this)"""
+# ─────────────────────────────────────────────────────────────────────────
+# Join Request API
+# ─────────────────────────────────────────────────────────────────────────
+
+@views.route('/api/project/<int:project_id>/request-join', methods=['POST'])
+def request_join_project(project_id):
+    """User requests to join a project"""
     err = require_login()
     if err: return err
     
-    project = Project.query.get_or_404(project_id)
     current_user = get_current_user()
+    project = Project.query.get_or_404(project_id)
     
+    # Check if user is already a member
+    if current_user in project.members:
+        return jsonify({"error": "You are already a member of this project"}), 400
+    
+    # Check if request already exists
+    existing_request = JoinRequest.query.filter_by(
+        user_id=current_user.id,
+        project_id=project_id
+    ).first()
+    
+    if existing_request:
+        if existing_request.status == 'pending':
+            return jsonify({"error": "You have already sent a join request"}), 400
+        elif existing_request.status == 'rejected':
+            return jsonify({"error": "Your join request was rejected"}), 400
+    
+    # Create new join request
+    join_request = JoinRequest(
+        user_id=current_user.id,
+        project_id=project_id,
+        status='pending'
+    )
+    db.session.add(join_request)
+    db.session.commit()
+    
+    return jsonify({"success": "Join request sent successfully!"}), 201
+
+
+@views.route('/api/project/<int:project_id>/join-requests', methods=['GET'])
+def get_join_requests(project_id):
+    """Get all join requests for a project (only for project lead)"""
+    err = require_login()
+    if err: return err
+    
+    current_user = get_current_user()
+    project = Project.query.get_or_404(project_id)
+    
+    # Security check: Only the project lead can view requests
     if project.user_id != current_user.id:
-        return jsonify({"error": "Unauthorized. Only the Project Lead can manage admin roles."}), 403
-        
-    member_record = ProjectMember.query.filter_by(project_id=project_id, user_id=user_id).first()
-    if not member_record:
-        return jsonify({"error": "Member not found in this project."}), 404
-        
-    data = request.get_json(silent=True) or {}
-    new_role = data.get('role')
+        return jsonify({"error": "Unauthorized. Only the Project Lead can view requests."}), 403
     
-    if new_role not in ['admin', 'member']:
-        return jsonify({"error": "Invalid role specified."}), 400
-        
-    member_record.role = new_role
-    db.session.commit()
-    return jsonify({"success": True, "message": f"Role updated to {new_role}"})
+    # Get pending requests
+    requests = JoinRequest.query.filter_by(
+        project_id=project_id,
+        status='pending'
+    ).order_by(JoinRequest.created_at.desc()).all()
+    
+    return jsonify([{
+        'id': r.id,
+        'user_id': r.user_id,
+        'user_name': r.user.name,
+        'user_email': r.user.email,
+        'user_faculty': r.user.faculty,
+        'created_at': r.created_at.isoformat()
+    } for r in requests])
 
 
-@views.route('/api/project/<int:project_id>/member/<int:user_id>', methods=['DELETE'])
-def remove_member(project_id, user_id):
-    """Remove a member from the project (or leave project)"""
+@views.route('/api/project/<int:project_id>/join-requests/<int:request_id>/accept', methods=['POST'])
+def accept_join_request(project_id, request_id):
+    """Accept a join request"""
     err = require_login()
     if err: return err
     
-    project = Project.query.get_or_404(project_id)
     current_user = get_current_user()
-    
-    is_owner = (project.user_id == current_user.id)
-    current_member_record = ProjectMember.query.filter_by(project_id=project_id, user_id=current_user.id).first()
-    is_admin = (current_member_record and current_member_record.role == 'admin')
-    
-    target_record = ProjectMember.query.filter_by(project_id=project_id, user_id=user_id).first()
-    if not target_record:
-        return jsonify({"error": "Member not found in this project."}), 404
-        
-    # Validation Rules
-    # Allow users to remove themselves (Leave Project)
-    is_self = (current_user.id == user_id)
-    
-    if not is_owner and not is_self:
-        if not is_admin:
-            return jsonify({"error": "Unauthorized. You do not have permission to remove members."}), 403
-        if target_record.role == 'admin':
-            return jsonify({"error": "Unauthorized. Admins cannot remove other Admins."}), 403
-            
-    db.session.delete(target_record)
-    db.session.commit()
-    return jsonify({"success": True, "message": "Member removed successfully."})
-
-@views.route('/api/project/<int:project_id>/transfer_ownership/<int:user_id>', methods=['PUT'])
-def transfer_ownership(project_id, user_id):
-    """Transfer project ownership to another member (Owner only)"""
-    err = require_login()
-    if err: return err
-     
     project = Project.query.get_or_404(project_id)
-    current_user = get_current_user()
+    join_request = JoinRequest.query.get_or_404(request_id)
     
-    # Security: Only the actual owner can transfer ownership
+    # Security check: Only the project lead can accept requests
     if project.user_id != current_user.id:
-        return jsonify({"error": "Unauthorized. Only the Project Lead can transfer ownership."}), 403
-        
-    # Verify the target user is a member of the project
-    target_member = ProjectMember.query.filter_by(project_id=project_id, user_id=user_id).first()
-    if not target_member:
-        return jsonify({"error": "Target user must be a member of the project."}), 404
-        
-    # 1. Demote the current owner to an 'admin' in ProjectMember table
-    new_admin_record = ProjectMember(user_id=current_user.id, project_id=project_id, role='admin')
-    db.session.add(new_admin_record)
+        return jsonify({"error": "Unauthorized. Only the Project Lead can accept requests."}), 403
     
-    # 2. Assign the project's user_id to the new owner
-    project.user_id = user_id
+    if join_request.project_id != project_id:
+        return jsonify({"error": "Request does not belong to this project"}), 400
     
-    # 3. Remove the new owner from the ProjectMember table (since they are now the Lead)
-    db.session.delete(target_member)
+    if join_request.status != 'pending':
+        return jsonify({"error": f"Request is already {join_request.status}"}), 400
     
+    # Add user to project members
+    user_to_add = User.query.get_or_404(join_request.user_id)
+    if user_to_add not in project.members:
+        project.members.append(user_to_add)
+    
+    # Update request status
+    join_request.status = 'accepted'
     db.session.commit()
-    return jsonify({"success": True, "message": "Ownership transferred successfully."})
+    
+    return jsonify({"success": "Join request accepted!", "user_name": user_to_add.name})
+
+
+@views.route('/api/project/<int:project_id>/join-requests/<int:request_id>/reject', methods=['POST'])
+def reject_join_request(project_id, request_id):
+    """Reject a join request"""
+    err = require_login()
+    if err: return err
+    
+    current_user = get_current_user()
+    project = Project.query.get_or_404(project_id)
+    join_request = JoinRequest.query.get_or_404(request_id)
+    
+    # Security check: Only the project lead can reject requests
+    if project.user_id != current_user.id:
+        return jsonify({"error": "Unauthorized. Only the Project Lead can reject requests."}), 403
+    
+    if join_request.project_id != project_id:
+        return jsonify({"error": "Request does not belong to this project"}), 400
+    
+    if join_request.status != 'pending':
+        return jsonify({"error": f"Request is already {join_request.status}"}), 400
+    
+    # Update request status
+    join_request.status = 'rejected'
+    db.session.commit()
+    
+    return jsonify({"success": "Join request rejected!"})
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -1229,13 +1398,12 @@ def create_project_comment(project_id):
     if comment_type not in ['normal', 'issue', 'suggestion']:
         return jsonify({'error': 'Invalid comment type'}), 400
     
+    # Determine user role
     user_role = 'user'
     if current_user.id == project.user_id:
         user_role = 'owner'
-    else:
-        member_record = ProjectMember.query.filter_by(project_id=project.id, user_id=current_user.id).first()
-        if member_record:
-            user_role = 'team-member'
+    elif current_user in project.members:
+        user_role = 'team-member'
     
     comment = ProjectComment(
         project_id=project_id,
@@ -1273,7 +1441,7 @@ def delete_project_comment(project_id, comment_id):
     comment = ProjectComment.query.get_or_404(comment_id)
     current_user = get_current_user()
     
-    # Only owner can delete comments
+    # Only owner can delete comments 
     if current_user.id != project.user_id:
         return jsonify({'error': 'Only project owner can delete comments'}), 403
     
@@ -1344,9 +1512,8 @@ def move_comment_type(project_id, comment_id):
         return jsonify({'error': 'Invalid comment type'}), 400
     
     comment.comment_type = new_type
-    # Reset label when moving to normal
-    if new_type == 'normal':
-        comment.label = None
+    # Label is preserved when moving to normal - it will be hidden in the UI
+    # When moving back to issue/suggestion, the label will be visible again
     
     db.session.commit()
     
@@ -1400,66 +1567,223 @@ def create_comment_label():
         'description': label.description,
     }), 201
 
+# 1. AI Suggestions (home page) - based on user interests/skills
+# 2. Similar Projects (project page) - based on a reference project
 
-# =====================================================================
-# AI SUGGESTION SYSTEM
-# =====================================================================
-
-def _calculate_match_score(user_interests, project_languages, project_description):
+def _calculate_unified_match_score(
+    candidate_project,
+    reference_data=None,
+    user_interests=None,
+    user_skills=None,
+    mode='ai'
+):
     """
-    Calculate how well a project matches user interests.
-    Returns a score from 0-100 based on:
-    1. Project languages matching user interests
-    2. Project description keywords matching interests
+    Unified matching algorithm for both AI suggestions and similar projects.
+    
+    Args:
+        candidate_project: Project object to score
+        reference_data: Dict with keys: 'languages', 'description' (for similar projects mode)
+        user_interests: List of user interests (for AI suggestions mode)
+        user_skills: List of user skills (for AI suggestions mode)
+        mode: 'ai' for AI suggestions or 'similar' for similar projects
+    
+    Returns:
+        Score from 0-100 representing project relevance
     """
-    score = 0
-    interest_matches = 0
     
-    # Convert to lowercase for comparison
-    user_interests_lower = [i.lower() for i in user_interests]
-    project_langs_lower = project_languages.lower() if project_languages else ''
-    project_desc_lower = project_description.lower() if project_description else ''
-    project_combined = (project_langs_lower + ' ' + project_desc_lower).lower()
-    
-    # Map interests to keywords for better matching
-    interest_keywords = {
-        'web development': ['web', 'frontend', 'backend', 'react', 'vue', 'django', 'flask', 'nodejs', 'express', 'html', 'css', 'javascript', 'typescript'],
-        'mobile development': ['mobile', 'ios', 'android', 'flutter', 'react native', 'swift', 'kotlin'],
-        'ai/ml': ['ai', 'ml', 'machine learning', 'deep learning', 'tensorflow', 'pytorch', 'nlp', 'cv', 'neural'],
-        'data science': ['data', 'science', 'analytics', 'pandas', 'numpy', 'data analysis', 'visualization'],
-        'devops': ['devops', 'docker', 'kubernetes', 'ci/cd', 'jenkins', 'devops', 'automation', 'infrastructure'],
-        'cloud': ['cloud', 'aws', 'azure', 'gcp', 'serverless', 'cloud computing'],
-        'blockchain': ['blockchain', 'crypto', 'web3', 'ethereum', 'smart contract', 'solidity'],
-        'iot': ['iot', 'embedded', 'arduino', 'raspberry', 'iot', 'sensor', 'microcontroller'],
-        'html': ['html', 'css', 'javascript', 'typescript', 'web', 'frontend', 'backend', 'react', 'vue', 'django', 'flask', 'nodejs', 'express'],
-        'python': ['python', 'django', 'flask', 'pandas', 'numpy', 'machine learning', 'deep learning', 'tensorflow', 'pytorch', 'nlp', 'cv', 'neural'],
-        'java': ['java', 'spring', 'springboot', 'android', 'maven', 'gradle', 'jvm', 'microservices'],
-        'c++': ['c++', 'cpp', 'gaming', 'graphics', 'performance', 'linux', 'embedded', 'real-time'],
-        'c#': ['c#', 'csharp', 'unity', 'windows', 'dotnet', 'blazor', 'aspnet']
+    STOPWORDS = {
+        'the', 'a', 'an', 'and', 'or', 'in', 'on', 'is', 'to', 'for', 'of',
+        'with', 'that', 'this', 'it', 'as', 'are', 'was', 'be', 'from', 'at',
+        'by', 'we', 'our', 'your', 'not', 'has', 'have', 'will', 'can', 'i',
+        'its', 'an', 'using', 'used', 'use', 'based', 'built', 'build',
+        'project', 'help', 'need', 'team', 'member', 'members'
     }
     
-    # Check direct matches
-    for interest in user_interests_lower:
-        if interest in project_combined:
-            interest_matches += 10
+    PROGRAMMING_LANGUAGES = {
+        'python': ['python', 'py'],
+        'javascript': ['javascript', 'js'],
+        'typescript': ['typescript', 'ts'],
+        'java': ['java'],
+        'c++': ['c++', 'cpp'],
+        'c#': ['c#', 'csharp', '.net', 'dotnet'],
+        'php': ['php'],
+        'ruby': ['ruby', 'rails'],
+        'go': ['go', 'golang'],
+        'rust': ['rust'],
+        'kotlin': ['kotlin'],
+        'swift': ['swift'],
+        'sql': ['sql', 'plsql', 'mysql', 'postgres', 'postgresql'],
+        'html': ['html', 'html5'],
+        'css': ['css', 'scss', 'sass', 'less'],
+        'react': ['react', 'reactjs', 'react.js'],
+        'vue': ['vue', 'vuejs', 'vue.js'],
+        'angular': ['angular', 'angularjs'],
+        'nodejs': ['nodejs', 'node.js', 'node'],
+        'django': ['django'],
+        'flask': ['flask'],
+        'spring': ['spring', 'springboot', 'spring boot'],
+        'docker': ['docker'],
+        'kubernetes': ['kubernetes', 'k8s'],
+        'terraform': ['terraform'],
+    }
     
-    # Check keyword matches
-    for interest in user_interests_lower:
-        keywords = interest_keywords.get(interest, [])
-        for keyword in keywords:
-            if keyword in project_combined:
-                interest_matches += 5
+    interest_keywords = {
+        'web development': ['web', 'frontend', 'backend', 'react', 'vue', 'django', 'flask', 'nodejs', 'node.js', 'express', 'html', 'css', 'javascript', 'typescript', 'responsive', 'api', 'rest', 'graphql'],
+        'mobile development': ['mobile', 'ios', 'android', 'flutter', 'react native', 'swift', 'kotlin', 'app', 'native', 'cross-platform'],
+        'ai/ml': ['ai', 'ml', 'machine learning', 'deep learning', 'tensorflow', 'pytorch', 'nlp', 'cv', 'neural', 'model', 'algorithm', 'prediction'],
+        'data science': ['data', 'science', 'analytics', 'pandas', 'numpy', 'visualization', 'dashboard', 'bi', 'warehouse', 'etl', 'spark'],
+        'devops': ['devops', 'docker', 'kubernetes', 'ci/cd', 'jenkins', 'automation', 'infrastructure', 'deployment', 'pipeline'],
+        'cloud': ['cloud', 'aws', 'azure', 'gcp', 'google cloud', 'serverless', 'lambda', 'ec2', 'rds'],
+        'blockchain': ['blockchain', 'crypto', 'cryptocurrency', 'web3', 'ethereum', 'smart contract', 'solidity'],
+        'iot': ['iot', 'embedded', 'arduino', 'raspberry', 'sensor', 'microcontroller', 'hardware'],
+        'python': ['python', 'django', 'flask', 'pandas', 'numpy', 'scikit', 'jupyter', 'fastapi'],
+        'java': ['java', 'spring', 'springboot', 'android', 'maven', 'gradle', 'microservices'],
+        'c++': ['c++', 'cpp', 'gaming', 'graphics', 'performance', 'embedded', 'real-time'],
+        'c#': ['c#', 'csharp', '.net', 'dotnet', 'unity', 'windows', 'blazor', 'aspnet'],
+        'javascript': ['javascript', 'js', 'nodejs', 'node.js', 'react', 'vue', 'angular', 'typescript'],
+        'database': ['database', 'sql', 'mongodb', 'postgres', 'postgresql', 'mysql', 'redis', 'cassandra', 'elastic'],
+        'design': ['design', 'ui', 'ux', 'figma', 'adobe', 'photoshop', 'wireframe', 'prototype'],
+        'security': ['security', 'encryption', 'cryptography', 'penetration', 'authentication', 'authorization', 'oauth', 'jwt'],
+    }
     
-    # Cap the score at 100
-    score = min(100, 50 + interest_matches)
+    score = 0
+    candidate_langs = (candidate_project.languages or '').lower()
+    candidate_desc = (candidate_project.description or '').lower()
+    candidate_roles = (candidate_project.roles_needed or '').lower()
     
-    return score
+    candidate_langs_set = set(l.strip().lower() for l in candidate_langs.split(',') if l.strip())
+    candidate_desc_words = set(w for w in candidate_desc.split() if w not in STOPWORDS and len(w) > 2)
+    
+    if mode == 'similar':
+        # SIMILAR PROJECTS MODE: Compare with reference project
+        ref_langs = (reference_data.get('languages', '') or '').lower()
+        ref_desc = (reference_data.get('description', '') or '').lower()
+        
+        ref_langs_set = set(l.strip().lower() for l in ref_langs.split(',') if l.strip())
+        ref_desc_words = set(w for w in ref_desc.split() if w not in STOPWORDS and len(w) > 2)
+        
+        # Language overlap (30 pts max)
+        lang_overlap = len(candidate_langs_set & ref_langs_set)
+        lang_score = min(lang_overlap * 15, 30)
+        score += lang_score
+        
+        # Description keyword overlap (25 pts max)
+        if ref_desc_words and candidate_desc_words:
+            desc_overlap = len(candidate_desc_words & ref_desc_words)
+            desc_score = min(desc_overlap * 3, 25)
+            score += desc_score
+        
+        # User interests bonus (20 pts max) - if user logged in
+        if user_interests:
+            user_interests_lower = [i.lower() for i in user_interests]
+            combined_text = candidate_langs + ' ' + candidate_desc
+            interest_hits = 0
+            for interest in user_interests_lower:
+                keywords = interest_keywords.get(interest, [])
+                for keyword in keywords:
+                    if keyword in combined_text:
+                        interest_hits += 1
+            
+            interest_score = min(interest_hits * 5, 20)
+            score += interest_score
+        
+        # Baseline score of 15 to ensure visibility
+        score = min(100, 15 + score)
+        
+    else:  # mode == 'ai'
+        # AI SUGGESTIONS MODE: Compare with user interests/skills
+        if not user_interests:
+            return 0
+        
+        user_interests_lower = [i.lower() for i in user_interests]
+        
+        # Factor 1: Direct Programming Language Matching (35 pts max)
+        language_match_bonus = 0
+        for interest in user_interests_lower:
+            if interest in PROGRAMMING_LANGUAGES:
+                lang_variants = PROGRAMMING_LANGUAGES[interest]
+                for variant in lang_variants:
+                    if variant in candidate_langs:
+                        language_match_bonus += 12
+            
+            if interest in candidate_langs:
+                language_match_bonus += 15
+        
+        for lang_name, lang_variants in PROGRAMMING_LANGUAGES.items():
+            for variant in lang_variants:
+                if variant in candidate_langs:
+                    if lang_name in user_interests_lower or lang_name.lower() in ' '.join(user_interests_lower):
+                        language_match_bonus += 6
+        
+        language_match_bonus = min(language_match_bonus, 35)
+        score += language_match_bonus
+        
+        # Factor 2: Direct Interest Keyword Matching (30 pts max)
+        interest_keyword_hits = set()
+        for interest in user_interests_lower:
+            keywords = interest_keywords.get(interest, [])
+            for keyword in keywords:
+                if keyword in candidate_desc or keyword in candidate_langs:
+                    interest_keyword_hits.add(keyword)
+        
+        interest_match_score = min(len(interest_keyword_hits) * 2, 30)
+        score += interest_match_score
+        
+        # Factor 3: Language Overlap with Interest Keywords (20 pts max)
+        language_keyword_score = 0
+        for interest in user_interests_lower:
+            keywords = interest_keywords.get(interest, [])
+            for keyword in keywords:
+                for proj_lang in candidate_langs_set:
+                    if keyword in proj_lang or proj_lang in keyword:
+                        language_keyword_score += 6
+        
+        language_keyword_score = min(language_keyword_score, 20)
+        score += language_keyword_score
+        
+        # Factor 4: Description Quality & Keyword Density (10 pts max)
+        if candidate_desc:
+            desc_keyword_matches = 0
+            for interest in user_interests_lower:
+                keywords = interest_keywords.get(interest, [])
+                for keyword in keywords:
+                    keyword_words = set(keyword.split())
+                    if keyword_words & candidate_desc_words:
+                        desc_keyword_matches += 1
+            
+            desc_match_score = min(desc_keyword_matches * 2, 10)
+            score += desc_match_score
+        
+        # Factor 5: Skills-to-Roles Alignment Bonus (5 pts max)
+        if user_skills and candidate_roles:
+            user_skills_lower = [s.lower() for s in user_skills]
+            skills_in_roles = 0
+            for skill in user_skills_lower:
+                if skill in candidate_roles:
+                    skills_in_roles += 1
+            
+            skills_bonus = min(skills_in_roles * 2, 5)
+            score += skills_bonus
+        
+        # Precision filters
+        if score > 70:
+            pass  # High quality, keep as is
+        elif score < 30:
+            score = max(score, 10)  # Minimum 10% for showing
+        
+        score = min(100, max(0, score))
+    
+    return int(score)
+
+
+
 
 
 @views.route('/api/ai-suggestions', methods=['GET'])
 def get_ai_suggestions():
     """
     Get AI-powered project suggestions based on user interests and skills.
+    Uses the unified matching algorithm.
     """
     err = require_login()
     if err:
@@ -1470,38 +1794,66 @@ def get_ai_suggestions():
     if not user:
         return jsonify({'error': 'User not found'}), 404
     
-    # Parse user interests
-    user_interests = [i.strip() for i in user.interests.split(',') if i.strip()] if user.interests else []
+    # Parse user interests using the shared function
+    interests_data = parse_interests(user.interests)
+    user_interests = interests_data.get('dev_interests', []) + interests_data.get('lang_interests', [])
     
     if not user_interests:
-        return jsonify({'message': 'Please set your interests to get suggestions', 'suggestions': []})
+        return jsonify({
+            'success': True,
+            'user_interests': [],
+            'suggestions': [],
+            'total': 0,
+            'message': 'Please set your interests to get suggestions',
+            'algorithm_version': 'unified-v1'
+        })
     
-    # Get user's skills
-    my_skills = [s.skill.lower() for s in Skill.query.filter_by(user_id=user.id).all()]
+    # Get user's skills for enhanced matching
+    my_skills = [s.skill for s in Skill.query.filter_by(user_id=user.id).all()]
     
     # Get projects already suggested to this user
     already_suggested = db.session.query(Suggestion.project_id).filter_by(user_id=user.id).all()
     already_suggested_ids = [s[0] for s in already_suggested]
     
-    # Get all projects from OTHER users
+    # Get all projects from OTHER users (with quality filtering)
     all_projects = Project.query.filter(
         Project.user_id != user.id,
-        ~Project.id.in_(already_suggested_ids)
+        ~Project.id.in_(already_suggested_ids),
+        Project.status != 'Archived',
+        Project.project_name != '',
+        (Project.languages != '') | (Project.description != '')
     ).all()
     
-    # Score and sort projects
+    # Score projects using unified algorithm in 'ai' mode
     scored_projects = []
     for project in all_projects:
-        match_score = _calculate_match_score(user_interests, project.languages, project.description)
-        scored_projects.append((project, match_score))
+        match_score = _calculate_unified_match_score(
+            candidate_project=project,
+            user_interests=user_interests,
+            user_skills=my_skills,
+            mode='ai'
+        )
+        
+        if match_score >= 30:
+            scored_projects.append((project, match_score))
     
-    # Sort by score (descending) and then by creation date (newest first)
+    # Sort by score (descending), then by project activity (newer first)
     scored_projects.sort(key=lambda x: (-x[1], -x[0].created_at.timestamp()))
     
-    # Return top 10 suggestions
+    # Return top 12 suggestions
     result = []
-    for project, match_score in scored_projects[:10]:
+    for project, match_score in scored_projects[:12]:
         owner = User.query.get(project.user_id)
+        
+        # Generate contextual match reason
+        match_reason = 'Matches your interests'
+        if match_score >= 80:
+            match_reason = 'Excellent match for your profile'
+        elif match_score >= 70:
+            match_reason = 'Strong match for your skills'
+        elif match_score >= 50:
+            match_reason = 'Good match for your interests'
+        
         result.append({
             'id': project.id,
             'project_id': project.id,
@@ -1510,11 +1862,11 @@ def get_ai_suggestions():
             'owner_name': owner.name if owner else 'Unknown',
             'owner_id': project.user_id,
             'status': project.status,
-            'contributors': project.contributors,
+            'contributors': project.contributors or 0,
             'languages': project.languages,
             'roles_needed': project.roles_needed,
             'match_score': match_score,
-            'match_reason': 'Matches your interests in ' + ', '.join(user_interests),
+            'match_reason': match_reason,
             'created_at': project.created_at.isoformat(),
         })
     
@@ -1522,7 +1874,8 @@ def get_ai_suggestions():
         'success': True,
         'user_interests': user_interests,
         'suggestions': result,
-        'total': len(result)
+        'total': len(result),
+        'algorithm_version': 'unified-v1'
     })
 
 
@@ -1530,7 +1883,8 @@ def get_ai_suggestions():
 def get_similar_projects(project_id):
     """
     Get projects similar to the given project.
-    Scores by: shared languages, shared description keywords, user's own interests.
+    Uses the unified matching algorithm.
+    Includes user interests for personalization if logged in.
     """
     project = Project.query.get_or_404(project_id)
 
@@ -1542,51 +1896,32 @@ def get_similar_projects(project_id):
         if user and user.interests:
             user_interests = [i.strip().lower() for i in user.interests.split(',') if i.strip()]
 
-    # Stopwords to ignore when comparing descriptions
-    STOPWORDS = {
-        'the', 'a', 'an', 'and', 'or', 'in', 'on', 'is', 'to', 'for', 'of',
-        'with', 'that', 'this', 'it', 'as', 'are', 'was', 'be', 'from', 'at',
-        'by', 'we', 'our', 'your', 'not', 'has', 'have', 'will', 'can', 'i',
-        'its', 'an', 'using', 'used', 'use', 'based', 'built', 'build',
+    # Reference data from the current project
+    reference_data = {
+        'languages': project.languages,
+        'description': project.description
     }
 
-    # Tokenise the current project
-    current_langs = set(
-        l.strip().lower() for l in (project.languages or '').split(',') if l.strip()
-    )
-    current_desc_words = (
-        set((project.description or '').lower().split()) - STOPWORDS
-    )
-
-    # Candidate projects: exclude self and projects owned by the viewer
+    # Candidate projects: exclude self
     query = Project.query.filter(Project.id != project_id)
+    
+    # Exclude projects owned by the current user if logged in
     if user:
         query = query.filter(Project.user_id != user.id)
+    
     all_projects = query.all()
 
+    # Score projects using unified algorithm in 'similar' mode
     scored = []
     for p in all_projects:
-        score = 0
-
-        # --- Language overlap (25 pts per shared language, max 50) ---
-        p_langs = set(l.strip().lower() for l in (p.languages or '').split(',') if l.strip())
-        lang_overlap = len(current_langs & p_langs)
-        score += min(lang_overlap * 25, 50)
-
-        # --- Description keyword overlap (3 pts per shared word, max 30) ---
-        p_desc_words = set((p.description or '').lower().split()) - STOPWORDS
-        if current_desc_words and p_desc_words:
-            desc_overlap = len(current_desc_words & p_desc_words)
-            score += min(desc_overlap * 3, 30)
-
-        # --- User-interest bonus (8 pts per matching interest, max 24) ---
-        combined_text = ((p.languages or '') + ' ' + (p.description or '')).lower()
-        interest_hits = sum(1 for i in user_interests if i in combined_text)
-        score += min(interest_hits * 8, 24)
-
-        # Normalise: floor at 20 so there's always a baseline
-        score = min(100, 20 + score)
-        scored.append((p, score))
+        match_score = _calculate_unified_match_score(
+            candidate_project=p,
+            reference_data=reference_data,
+            user_interests=user_interests if user else None,
+            mode='similar'
+        )
+        
+        scored.append((p, match_score))
 
     # Sort: highest score first, then newest
     scored.sort(key=lambda x: (-x[1], -x[0].created_at.timestamp()))
@@ -1605,7 +1940,7 @@ def get_similar_projects(project_id):
             'match_score':  score,
         })
 
-    return jsonify({'similar': result, 'total': len(result)})
+    return jsonify({'similar': result, 'total': len(result), 'algorithm_version': 'unified-v1'})
 
 
 @views.route('/api/save-interest', methods=['POST'])
@@ -1637,124 +1972,3 @@ def save_interest():
         'message': 'Interests updated successfully',
         'interests': interests
     })
-
-# =====================================================================
-# API: Community Timeline Posts
-# =====================================================================
-
-@views.route('/api/community_posts', methods=['GET'])
-def get_community_posts():
-    """Fetch the latest posts for the community feed including attachments, likes, and comments"""
-    current_user = get_current_user()
-    current_user_id = current_user.id if current_user else None
-
-    posts = CommunityPost.query.order_by(CommunityPost.created_at.desc()).limit(30).all()
-    
-    result = []
-    for p in posts:
-        proj_data = None
-        if p.attached_project:
-            proj_data = {'id': p.attached_project.id, 'name': p.attached_project.project_name}
-            
-        # Calculate interactions
-        like_count = len(p.likes)
-        comment_count = len(p.comments)
-        user_liked = False
-        if current_user_id:
-            user_liked = any(like.user_id == current_user_id for like in p.likes)
-            
-        result.append({
-            'id': p.id,
-            'user_name': p.author.name if p.author else 'Unknown',
-            'content': p.content,
-            'category': p.category,
-            'created_at': p.created_at.isoformat(),
-            'image_url': f"/static/uploads/{p.image_path}" if p.image_path else None,
-            'link_url': p.link_url,
-            'attached_project': proj_data,
-            'like_count': like_count,
-            'comment_count': comment_count,
-            'user_liked': user_liked
-        })
-    return jsonify(result)
-
-@views.route('/api/community_posts', methods=['POST'])
-def create_community_post():
-    """Create a new post with optional image, link, and project attachments"""
-    err = require_login()
-    if err: return err
-    
-    current_user = get_current_user()
-    content = request.form.get('content', '').strip()
-    category = request.form.get('category', 'Discussion')
-    link_url = request.form.get('link_url', '').strip()
-    attached_project_id = request.form.get('attached_project_id')
-    
-    if not content: return jsonify({'error': 'Post content cannot be empty'}), 400
-        
-    post = CommunityPost(user_id=current_user.id, content=content, category=category)
-    if link_url: post.link_url = link_url
-        
-    if attached_project_id and attached_project_id.isdigit():
-        proj = Project.query.get(int(attached_project_id))
-        if proj: post.attached_project_id = proj.id
-            
-    if 'image' in request.files:
-        file = request.files['image']
-        if file and file.filename and allowed_file(file.filename):
-            ext = file.filename.rsplit('.', 1)[1].lower()
-            filename = f"post_{uuid.uuid4().hex}.{ext}"
-            file.save(os.path.join(UPLOAD_FOLDER, filename))
-            post.image_path = filename
-
-    db.session.add(post)
-    db.session.commit()
-    return jsonify({'success': True, 'message': 'Posted successfully'})
-
-@views.route('/api/community_posts/<int:post_id>/like', methods=['POST'])
-def toggle_community_post_like(post_id):
-    """Toggle Like/Unlike for a community post"""
-    err = require_login()
-    if err: return err
-    current_user = get_current_user()
-    
-    existing_like = CommunityPostLike.query.filter_by(user_id=current_user.id, post_id=post_id).first()
-    if existing_like:
-        db.session.delete(existing_like)
-        liked = False
-    else:
-        new_like = CommunityPostLike(user_id=current_user.id, post_id=post_id)
-        db.session.add(new_like)
-        liked = True
-        
-    db.session.commit()
-    count = CommunityPostLike.query.filter_by(post_id=post_id).count()
-    return jsonify({'success': True, 'liked': liked, 'like_count': count})
-
-@views.route('/api/community_posts/<int:post_id>/comments', methods=['GET', 'POST'])
-def manage_community_post_comments(post_id):
-    """Get or Create comments for a specific post"""
-    err = require_login()
-    if err: return err
-    
-    if request.method == 'GET':
-        comments = CommunityPostComment.query.filter_by(post_id=post_id).order_by(CommunityPostComment.created_at.asc()).all()
-        result = [{
-            'id': c.id,
-            'user_name': c.author.name,
-            'content': c.content,
-            'created_at': c.created_at.isoformat()
-        } for c in comments]
-        return jsonify(result)
-        
-    if request.method == 'POST':
-        current_user = get_current_user()
-        data = request.get_json(silent=True) or {}
-        content = data.get('content', '').strip()
-        
-        if not content: return jsonify({'error': 'Comment cannot be empty'}), 400
-        
-        comment = CommunityPostComment(post_id=post_id, user_id=current_user.id, content=content)
-        db.session.add(comment)
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Comment added'})

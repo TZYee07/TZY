@@ -164,101 +164,22 @@
 
 <main class="container mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-3 gap-10">
     
-    <div class="lg:col-span-2 space-y-6">
+    <div class="lg:col-span-2 space-y-8">
         
-        <!-- Community Feed Header -->
-        <div class="flex justify-between items-center mb-2">
-            <h2 class="text-xl font-bold text-gray-900">Community Feed</h2>
-            <button class="flex items-center gap-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition shadow-sm">
-                <i class="fas fa-filter"></i> Filter
-            </button>
+        <div class="flex items-center">
+            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                Active Projects for Takeover
+            </h3>
+            <div class="h-px bg-gray-200 flex-grow ml-4 mr-20"></div>
         </div>
 
-        <!-- Create Post Input Box -->
-        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
-            <div class="flex gap-4">
-                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold shrink-0">
-                    <span id="post-avatar-placeholder"><i class="fas fa-user"></i></span>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <textarea id="new-post-content" rows="3" placeholder="What's on your mind? Ask a question or share an experience..." 
-                        class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-red-400 focus:bg-white transition resize-none"></textarea>
-                    
-                    <!-- Previews Container (Hidden by default) -->
-                    <div id="attachment-previews" class="hidden flex-col gap-3 mt-3 border-t border-gray-100 pt-3">
-                        
-                        <!-- Image Preview -->
-                        <div id="preview-image-container" class="hidden relative inline-block w-max">
-                            <img id="preview-image" class="h-24 rounded-lg object-cover border border-gray-200 shadow-sm" src="">
-                            <button type="button" onclick="clearImage()" class="absolute -top-2 -right-2 bg-gray-800 text-white rounded-full w-6 h-6 flex items-center justify-center text-[10px] hover:bg-red-500 shadow transition"><i class="fas fa-times"></i></button>
-                        </div>
-                        
-                        <!-- Link Input Preview -->
-                        <div id="preview-link-container" class="hidden items-center gap-2">
-                            <div class="bg-purple-50 px-3 py-2 rounded-lg text-purple-500"><i class="fas fa-link"></i></div>
-                            <input type="url" id="post-link" placeholder="https://..." class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:border-purple-400 outline-none transition bg-gray-50 focus:bg-white">
-                            <button type="button" onclick="clearLink()" class="text-gray-400 hover:text-red-500 p-2 transition"><i class="fas fa-times"></i></button>
-                        </div>
-
-                        <!-- Project Select Preview -->
-                        <div id="preview-project-container" class="hidden items-center gap-2">
-                            <div class="bg-blue-50 px-3 py-2 rounded-lg text-blue-500"><i class="fas fa-project-diagram"></i></div>
-                            <select id="post-project-select" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:border-blue-400 outline-none bg-gray-50 focus:bg-white transition">
-                                <option value="">Loading your projects...</option>
-                            </select>
-                            <button type="button" onclick="clearProject()" class="text-gray-400 hover:text-red-500 p-2 transition"><i class="fas fa-times"></i></button>
-                        </div>
-                    </div>
-
-                    <div class="flex justify-between items-center mt-3 flex-wrap gap-3">
-                        <div class="flex items-center gap-1 sm:gap-2">
-                            <span class="text-xs font-bold text-gray-500 uppercase tracking-wider hidden sm:block">Type:</span>
-                            <select id="new-post-category" class="bg-white border border-gray-200 text-gray-600 text-xs font-semibold rounded-lg px-3 py-2 focus:outline-none focus:border-red-400 cursor-pointer shadow-sm">
-                                <option value="Discussion">🗣️ Discussion</option>
-                                <option value="Question">❓ Question</option>
-                                <option value="Experience">💡 Experience</option>
-                            </select>
-
-                            <!-- Attachment Action Buttons -->
-                            <div class="flex items-center gap-1 ml-1 sm:ml-2 sm:border-l sm:border-gray-200 sm:pl-3">
-                                <!-- Attach Project Button -->
-                                <button type="button" onclick="toggleProjectSelect()" class="text-gray-400 hover:text-blue-500 transition p-2 rounded-full hover:bg-blue-50 focus:outline-none" title="Attach Project">
-                                    <i class="fas fa-project-diagram text-lg"></i>
-                                </button>
-                                
-                                <!-- Upload Photo Button -->
-                                <label class="text-gray-400 hover:text-green-500 transition p-2 rounded-full hover:bg-green-50 cursor-pointer mb-0 flex items-center" title="Upload Photo">
-                                    <i class="far fa-image text-lg"></i>
-                                    <input type="file" class="hidden" accept="image/*" id="post-image-upload">
-                                </label>
-                                
-                                <!-- Add Link Button -->
-                                <button type="button" onclick="toggleLinkInput()" class="text-gray-400 hover:text-purple-500 transition p-2 rounded-full hover:bg-purple-50 focus:outline-none" title="Add Link">
-                                    <i class="fas fa-link text-lg"></i>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <button onclick="submitCommunityPost(this)" class="bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-6 py-2 rounded-xl transition shadow-sm flex items-center gap-2 ml-auto">
-                            <i class="fas fa-paper-plane"></i> Post
-                        </button>
-                    </div>
-                </div>
+        <div class="grid gap-6">
+            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm italic text-gray-400">
+                No projects listed yet. Be the first to hand over the torch!
             </div>
         </div>
-
-        <!-- Community Feed Container (Dynamic Posts will load here) -->
-        <div id="feed-container" class="space-y-4">
-            <!-- Loading State -->
-            <div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-gray-400 text-center flex flex-col items-center justify-center">
-                <i class="fas fa-circle-notch fa-spin text-3xl mb-3 text-red-500"></i>
-                <span class="text-sm font-medium">Loading community feed...</span>
-            </div>
-        </div>
-
     </div>
 
-    <!-- Right Sidebar Content remains untouched -->
     <div class="space-y-8">
         <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
             <h3 class="font-black text-gray-800 text-lg mb-6 flex items-center">
@@ -309,27 +230,7 @@
             </div>
         </div>
 
-        <!-- Activity Feed -->
-        <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-            <h3 class="font-black text-gray-800 text-lg mb-6 flex items-center">
-                <i class="fas fa-comments mr-3 text-red-600"></i> Recent Activity
-            </h3>
-            
-            <!-- Add Comment Form -->
-            <div class="mb-6 pb-6 border-b border-gray-100">
-                <textarea id="comment-input" placeholder="Share an update or comment..." rows="2"
-                    class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-red-500 text-sm bg-gray-50 resize-none"></textarea>
-                <button id="submit-comment-btn"
-                    class="mt-3 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">
-                    <i class="fas fa-paper-plane mr-2"></i>Post
-                </button>
-            </div>
 
-            <!-- Comments List -->
-            <div id="comments-list" class="space-y-4">
-                <div class="text-gray-400 text-sm italic">No activities yet. Be the first to post!</div>
-            </div>
-        </div>
 
         <div class="p-6">
             <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Resources</h4>
@@ -341,32 +242,9 @@
     </div>
 </main>
 
-<!-- Image Modal for Full Screen Viewing -->
-<div id="imageModal" class="hidden fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300" onclick="closeModal()">
-    <button class="absolute top-6 right-6 text-gray-300 hover:text-white focus:outline-none transition transform hover:scale-110">
-        <i class="fas fa-times text-4xl"></i>
-    </button>
-    <img id="modalImage" src="" class="max-w-full max-h-[90vh] rounded-xl shadow-2xl object-contain" onclick="event.stopPropagation()">
-</div>
-
 <script>
     const IS_FILE = window.location.protocol === 'file:';
     const API = '/api';
-
-    // ── Image Modal Logic ─────────────────────────────────────────────────────
-    function openModal(imageSrc) {
-        const modal = document.getElementById('imageModal');
-        const modalImg = document.getElementById('modalImage');
-        modalImg.src = imageSrc;
-        modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeModal() {
-        const modal = document.getElementById('imageModal');
-        modal.classList.add('hidden');
-        document.body.style.overflow = 'auto';
-    }
 
     // ── Mobile menu smooth toggle ─────────────────────────────────────────────
     const menuBtn    = document.getElementById('menu-btn');
@@ -388,10 +266,12 @@
         mobileMenu.classList.contains('menu-open') ? closeMenu() : openMenu();
     });
 
+    // Auto-close when a link or button inside the menu is clicked
     mobileMenu.querySelectorAll('a, button').forEach(el => {
         el.addEventListener('click', closeMenu);
     });
 
+    // Close on outside click
     document.addEventListener('click', (e) => {
         if (!menuBtn.contains(e.target) && !mobileMenu.contains(e.target)) {
             closeMenu();
@@ -401,418 +281,12 @@
     // ── Toast notification ────────────────────────────────────────────────────
     function showNotif(msg, success = true) {
         const toast = document.createElement('div');
-        toast.className = `fixed bottom-6 right-6 px-6 py-3 rounded-2xl text-white text-sm font-semibold shadow-lg ${success ? 'bg-green-600' : 'bg-red-600'} z-50`;
+        toast.className = `fixed bottom-6 right-6 px-6 py-3 rounded-2xl text-white text-sm font-semibold shadow-lg ${success ? 'bg-green-600' : 'bg-red-600'}`;
         toast.textContent = msg;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3500);
     }
 
-    // ── Attachment Preview Logic ──────────────────────────────────────────────
-    let selectedImageFile = null;
-
-    function toggleLinkInput() {
-        document.getElementById('attachment-previews').classList.remove('hidden');
-        document.getElementById('preview-link-container').classList.remove('hidden');
-        document.getElementById('preview-link-container').classList.add('flex');
-    }
-
-    function clearLink() {
-        document.getElementById('post-link').value = '';
-        document.getElementById('preview-link-container').classList.add('hidden');
-        document.getElementById('preview-link-container').classList.remove('flex');
-        checkPreviewsEmpty();
-    }
-
-    async function toggleProjectSelect() {
-        document.getElementById('attachment-previews').classList.remove('hidden');
-        document.getElementById('preview-project-container').classList.remove('hidden');
-        document.getElementById('preview-project-container').classList.add('flex');
-        
-        // Load user's projects for the dropdown if not loaded yet
-        const select = document.getElementById('post-project-select');
-        if (select.options.length <= 1 && !IS_FILE) {
-            try {
-                const res = await fetch(`${API}/projects`);
-                if (res.ok) {
-                    const projects = await res.json();
-                    if (projects.length === 0) {
-                        select.innerHTML = '<option value="">You don\'t have any projects yet.</option>';
-                    } else {
-                        select.innerHTML = '<option value="">Select a project to attach...</option>' + 
-                            projects.map(p => `<option value="${p.id}">${escapeHtml(p.project_name)}</option>`).join('');
-                    }
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        }
-    }
-
-    function clearProject() {
-        document.getElementById('post-project-select').value = '';
-        document.getElementById('preview-project-container').classList.add('hidden');
-        document.getElementById('preview-project-container').classList.remove('flex');
-        checkPreviewsEmpty();
-    }
-
-    // Bind file input change for images
-    document.getElementById('post-image-upload').addEventListener('change', function(e) {
-        if (this.files && this.files[0]) {
-            selectedImageFile = this.files[0];
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('preview-image').src = e.target.result;
-                document.getElementById('attachment-previews').classList.remove('hidden');
-                document.getElementById('preview-image-container').classList.remove('hidden');
-            }
-            reader.readAsDataURL(selectedImageFile);
-        }
-    });
-
-    function clearImage() {
-        selectedImageFile = null;
-        document.getElementById('post-image-upload').value = '';
-        document.getElementById('preview-image-container').classList.add('hidden');
-        checkPreviewsEmpty();
-    }
-
-    function checkPreviewsEmpty() {
-        const linkHidden = document.getElementById('preview-link-container').classList.contains('hidden');
-        const projHidden = document.getElementById('preview-project-container').classList.contains('hidden');
-        const imgHidden = document.getElementById('preview-image-container').classList.contains('hidden');
-        
-        if (linkHidden && projHidden && imgHidden) {
-            document.getElementById('attachment-previews').classList.add('hidden');
-        }
-    }
-
-    // ── Load Community Timeline Feed ──────────────────────────────────────────
-    async function loadFeed() {
-        const container = document.getElementById('feed-container');
-        
-        if (IS_FILE) {
-            container.innerHTML = '<div class="text-center text-gray-400 py-10 bg-white border border-gray-100 rounded-2xl text-sm italic">(Feed disabled in offline mode)</div>';
-            return;
-        }
-
-        try {
-            const res = await fetch(`${API}/community_posts`);
-            if (!res.ok) throw new Error('Failed to fetch feed');
-            const posts = await res.json();
-            
-            if (posts.length === 0) {
-                container.innerHTML = `<div class="text-center text-gray-500 py-10 border border-gray-200 rounded-2xl bg-white text-sm italic">No posts yet. Be the first to start a discussion!</div>`;
-                return;
-            }
-
-            container.innerHTML = posts.map(p => {
-                let badgeHTML = '';
-                if (p.category === 'Question') {
-                    badgeHTML = '<span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"><i class="fas fa-question-circle mr-1"></i>Question</span>';
-                } else if (p.category === 'Experience') {
-                    badgeHTML = '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"><i class="fas fa-lightbulb mr-1"></i>Experience</span>';
-                } else {
-                    badgeHTML = '<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"><i class="fas fa-comment-dots mr-1"></i>Discussion</span>';
-                }
-                
-                // Construct attachments HTML
-                let attachmentsHTML = '';
-                if (p.attached_project) {
-                    attachmentsHTML += `
-                        <a href="/project/${p.attached_project.id}" class="mt-3 flex items-center gap-2 text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-100 px-3 py-2 rounded-lg hover:bg-blue-100 transition w-max">
-                            <i class="fas fa-project-diagram text-blue-500"></i> ${escapeHtml(p.attached_project.name)}
-                        </a>`;
-                }
-                if (p.link_url) {
-                    attachmentsHTML += `
-                        <a href="${p.link_url}" target="_blank" class="mt-3 flex items-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-800 transition hover:underline w-max break-all">
-                            <i class="fas fa-link"></i> ${escapeHtml(p.link_url)}
-                        </a>`;
-                }
-                if (p.image_url) {
-                    attachmentsHTML += `
-                        <div class="mt-3 rounded-xl overflow-hidden border border-gray-100 max-w-sm cursor-pointer group" onclick="openModal('${p.image_url}')">
-                            <img src="${p.image_url}" class="w-full max-h-64 object-cover group-hover:opacity-90 transition">
-                        </div>`;
-                }
-
-                // Dynamic Like Styles
-                const likeIcon = p.user_liked ? 'fas fa-heart text-red-500' : 'far fa-heart';
-                const likeTextColor = p.user_liked ? 'text-red-600' : 'text-gray-500 hover:text-red-600';
-
-                return `
-                <div class="bg-white border border-gray-200 rounded-2xl p-5 hover:border-gray-300 transition shadow-sm group">
-                    <div class="flex justify-between items-start mb-3">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full bg-red-100 border border-red-200 flex items-center justify-center text-red-600 text-sm font-bold shrink-0">
-                                ${p.user_name.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                                <div class="font-bold text-gray-900 text-sm">${escapeHtml(p.user_name)}</div>
-                                <div class="text-xs text-gray-400">${formatTime(p.created_at)}</div>
-                            </div>
-                        </div>
-                        ${badgeHTML}
-                    </div>
-                    
-                    <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">${escapeHtml(p.content)}</p>
-                    
-                    <!-- Render Attachments -->
-                    ${attachmentsHTML}
-                    
-                    <!-- Action Bar (Like, Comment, Share) -->
-                    <div class="flex gap-6 border-t border-gray-100 pt-4 mt-4 select-none">
-                        <button onclick="togglePostLike(${p.id}, this)" class="flex items-center gap-1.5 text-xs font-semibold ${likeTextColor} transition">
-                            <i class="${likeIcon} transition-transform duration-200"></i> 
-                            <span class="like-count">${p.like_count > 0 ? p.like_count : ''} Like</span>
-                        </button>
-                        
-                        <button onclick="toggleCommentSection(${p.id})" class="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-blue-600 transition">
-                            <i class="far fa-comment"></i> 
-                            <span id="comment-count-${p.id}">${p.comment_count > 0 ? p.comment_count : ''} Comment</span>
-                        </button>
-                        
-                        <button onclick="sharePost(${p.id})" class="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-900 transition ml-auto" title="Copy Link">
-                            <i class="fas fa-share"></i>
-                        </button>
-                    </div>
-
-                    <!-- Hidden Comments Section -->
-                    <div id="comments-section-${p.id}" class="hidden mt-4 pt-4 border-t border-gray-100">
-                        <div id="comments-list-${p.id}" class="space-y-3 mb-3 max-h-48 overflow-y-auto pr-2">
-                            <!-- Comments will be loaded here dynamically -->
-                            <div class="text-center text-xs text-gray-400 py-2"><i class="fas fa-spinner fa-spin"></i> Loading comments...</div>
-                        </div>
-                        
-                        <!-- Add Comment Input Area -->
-                        <div class="flex gap-2 items-center mt-2">
-                            <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold shrink-0 text-xs">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <input type="text" id="comment-input-${p.id}" class="flex-1 bg-gray-50 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:bg-white focus:border-blue-400 transition" placeholder="Write a comment..." onkeydown="if(event.key === 'Enter') submitPostComment(${p.id})">
-                            <button onclick="submitPostComment(${p.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm shrink-0">
-                                Post
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                `;
-            }).join('');
-
-        } catch (err) {
-            console.error(err);
-            container.innerHTML = `<div class="text-center text-red-500 py-10 bg-white border border-gray-200 rounded-2xl text-sm">Failed to load feed. Please try again later.</div>`;
-        }
-    }
-
-    // ── Interaction Functions (Like, Comment, Share) ──────────────────────────
-
-    // 1. Like Post
-    async function togglePostLike(postId, btnElement) {
-        btnElement.disabled = true;
-        try {
-            const res = await fetch(`${API}/community_posts/${postId}/like`, { method: 'POST' });
-            if (!res.ok) throw new Error('Failed to like post');
-            
-            const data = await res.json();
-            const icon = btnElement.querySelector('i');
-            const countSpan = btnElement.querySelector('.like-count');
-            
-            if (data.liked) {
-                btnElement.className = "flex items-center gap-1.5 text-xs font-semibold text-red-600 transition";
-                icon.className = "fas fa-heart text-red-500 scale-125 transition-transform duration-200";
-                setTimeout(() => icon.classList.remove('scale-125'), 200);
-            } else {
-                btnElement.className = "flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-red-600 transition";
-                icon.className = "far fa-heart transition-transform duration-200";
-            }
-            
-            countSpan.textContent = data.like_count > 0 ? `${data.like_count} Like` : 'Like';
-        } catch (err) {
-            showNotif('Failed to like post', false);
-        } finally {
-            btnElement.disabled = false;
-        }
-    }
-
-    // 2. Open Comments Section
-    async function toggleCommentSection(postId) {
-        const section = document.getElementById(`comments-section-${postId}`);
-        if (section.classList.contains('hidden')) {
-            section.classList.remove('hidden');
-            loadPostComments(postId); // Load comments when opening
-        } else {
-            section.classList.add('hidden');
-        }
-    }
-
-    // 3. Load Comments for a Post
-    async function loadPostComments(postId) {
-        const listDiv = document.getElementById(`comments-list-${postId}`);
-        try {
-            const res = await fetch(`${API}/community_posts/${postId}/comments`);
-            const comments = await res.json();
-            
-            if (comments.length === 0) {
-                listDiv.innerHTML = '<div class="text-center text-xs text-gray-400 py-2">No comments yet. Be the first!</div>';
-                return;
-            }
-            
-            listDiv.innerHTML = comments.map(c => `
-                <div class="flex gap-2">
-                    <div class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold shrink-0 text-[10px]">
-                        ${c.user_name.charAt(0).toUpperCase()}
-                    </div>
-                    <div class="bg-gray-50 px-3 py-2 rounded-xl rounded-tl-none border border-gray-100 flex-1">
-                        <div class="flex items-center gap-2 mb-0.5">
-                            <span class="font-bold text-[11px] text-gray-800">${escapeHtml(c.user_name)}</span>
-                            <span class="text-[10px] text-gray-400">${formatTime(c.created_at)}</span>
-                        </div>
-                        <p class="text-xs text-gray-600 break-words">${escapeHtml(c.content)}</p>
-                    </div>
-                </div>
-            `).join('');
-            
-            // Auto scroll to bottom of comments
-            listDiv.scrollTop = listDiv.scrollHeight;
-        } catch (err) {
-            listDiv.innerHTML = '<div class="text-center text-xs text-red-400 py-2">Failed to load comments.</div>';
-        }
-    }
-
-    // 4. Submit a Comment to a Post
-    async function submitPostComment(postId) {
-        const input = document.getElementById(`comment-input-${postId}`);
-        const content = input.value.trim();
-        if (!content) return;
-        
-        try {
-            const res = await fetch(`${API}/community_posts/${postId}/comments`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content })
-            });
-            if (res.ok) {
-                input.value = ''; // Clear input
-                await loadPostComments(postId); // Refresh the comment list
-                
-                // Manually increment the comment counter on the button
-                const countSpan = document.getElementById(`comment-count-${postId}`);
-                let currentText = countSpan.textContent.replace('Comment', '').trim();
-                let currentCount = parseInt(currentText) || 0;
-                countSpan.textContent = `${currentCount + 1} Comment`;
-            }
-        } catch (err) {
-            showNotif('Failed to post comment', false);
-        }
-    }
-
-    // 5. Share Post (Copy dummy link to clipboard)
-    function sharePost(postId) {
-        // Creates a shareable link 
-        const dummyUrl = `${window.location.origin}/post/${postId}`;
-        navigator.clipboard.writeText(dummyUrl).then(() => {
-            showNotif('✓ Link copied to clipboard!');
-        }).catch(err => {
-            showNotif('Failed to copy link', false);
-        });
-    }
-
-    // ── Submit Community Post (Updated for FormData and Attachments) ───────────
-    async function submitCommunityPost(btnElement) {
-        const contentInput = document.getElementById('new-post-content');
-        const categoryInput = document.getElementById('new-post-category');
-        const linkInput = document.getElementById('post-link');
-        const projectSelect = document.getElementById('post-project-select');
-        
-        const content = contentInput.value.trim();
-        const category = categoryInput.value;
-        const linkUrl = linkInput ? linkInput.value.trim() : '';
-        const attachedProjectId = projectSelect ? projectSelect.value : '';
-        
-        if (!content) {
-            showNotif('Please write something before posting.', false);
-            return;
-        }
-        
-        const originalText = btnElement.innerHTML;
-        btnElement.disabled = true;
-        btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Posting...';
-        
-        // Use FormData instead of JSON to support file uploads
-        const formData = new FormData();
-        formData.append('content', content);
-        formData.append('category', category);
-        if (linkUrl) formData.append('link_url', linkUrl);
-        if (attachedProjectId) formData.append('attached_project_id', attachedProjectId);
-        if (selectedImageFile) formData.append('image', selectedImageFile);
-
-        try {
-            const res = await fetch(`${API}/community_posts`, {
-                method: 'POST',
-                body: formData // No Content-Type header needed; fetch sets it automatically with boundary for FormData
-            });
-            
-            if (!res.ok) throw new Error('Failed to post');
-            
-            // Clear inputs and previews
-            contentInput.value = '';
-            clearLink();
-            clearProject();
-            clearImage();
-            
-            showNotif('✓ Posted successfully!');
-            
-            // Reload the feed automatically to show the new post
-            await loadFeed();
-            
-        } catch (err) {
-            console.error(err);
-            showNotif('Failed to post. Please try again.', false);
-        } finally {
-            btnElement.disabled = false;
-            btnElement.innerHTML = originalText;
-        }
-    }
-
-
-    // ── Load and render Recent Activity Comments ──────────────────────────────
-    async function loadComments() {
-        if (IS_FILE) {
-            document.getElementById('comments-list').innerHTML = '<div class="text-gray-400 text-sm italic">(Comments disabled in offline mode)</div>';
-            return;
-        }
-        try {
-            const res = await fetch(`${API}/comments`);
-            if (!res.ok) throw new Error();
-            const comments = await res.json();
-            renderComments(comments);
-        } catch (err) {
-            console.error('Failed to load comments:', err);
-        }
-    }
-
-    function renderComments(comments) {
-        const list = document.getElementById('comments-list');
-        if (!comments.length) {
-            list.innerHTML = '<div class="text-gray-400 text-sm italic">No activities yet. Be the first to post!</div>';
-            return;
-        }
-        list.innerHTML = comments.map(c => `
-            <div class="flex gap-3 p-4 bg-gray-50 rounded-xl">
-                <div class="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-bold text-xs shrink-0">
-                    ${(c.user_name || 'U')[0].toUpperCase()}
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-baseline gap-2">
-                        <span class="font-semibold text-sm text-gray-800">${c.user_name || 'Anonymous'}</span>
-                        <span class="text-xs text-gray-400">${formatTime(c.created_at)}</span>
-                    </div>
-                    <p class="text-sm text-gray-600 break-words">${escapeHtml(c.comment)}</p>
-                </div>
-            </div>
-        `).join('');
-    }
 
     // ── Load AI Suggestions ──────────────────────────────────────────────────
     async function loadAISuggestions() {
@@ -863,41 +337,55 @@
         }
 
         list.innerHTML = suggestions.map(p => {
-            const scoreColor = p.match_score >= 70 ? '#16a34a' : p.match_score >= 40 ? '#d97706' : '#dc2626';
-            const scoreBg   = p.match_score >= 70 ? '#f0fdf4' : p.match_score >= 40 ? '#fffbeb' : '#fef2f2';
+            // Color-coded match score
+            let scoreColor, scoreBg, scoreIcon;
+            if (p.match_score >= 80) {
+                scoreColor = '#059669';  // Emerald
+                scoreBg = '#f0fdf4';
+                scoreIcon = '<i class="fas fa-star"></i>';
+            } else if (p.match_score >= 70) {
+                scoreColor = '#16a34a';  // Green
+                scoreBg = '#f0fdf4';
+                scoreIcon = '<i class="fas fa-check-circle"></i>';
+            } else if (p.match_score >= 50) {
+                scoreColor = '#d97706';  // Amber
+                scoreBg = '#fffbeb';
+                scoreIcon = '<i class="fas fa-circle"></i>';
+            } else {
+                scoreColor = '#dc2626';  // Red
+                scoreBg = '#fef2f2';
+                scoreIcon = '<i class="fas fa-circle"></i>';
+            }
+            
             const langs = (p.languages || '').split(',').map(l => l.trim()).filter(Boolean).slice(0, 3);
             const langTags = langs.map(l =>
-                `<span class="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">${escapeHtml(l)}</span>`
+                `<span class="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">${escapeHtml(l)}</span>`
             ).join('');
-            const desc = (p.description || '').slice(0, 80) + ((p.description || '').length > 80 ? '…' : '');
+            
+            const desc = (p.description || '').slice(0, 75) + ((p.description || '').length > 75 ? '…' : '');
+            
             return `
             <a href="/project/${p.id}" class="block px-5 py-4 hover:bg-red-50 transition group">
-                <div class="flex items-start justify-between gap-2 mb-1">
-                    <span class="font-bold text-gray-800 text-sm group-hover:text-red-700 transition leading-snug">${escapeHtml(p.project_name)}</span>
-                    <span class="shrink-0 text-xs font-black px-2 py-0.5 rounded-full" style="background:${scoreBg};color:${scoreColor}">${p.match_score}%</span>
+                <div class="flex items-start justify-between gap-3 mb-2">
+                    <span class="font-bold text-gray-800 text-sm group-hover:text-red-700 transition leading-tight flex-1 min-w-0">${escapeHtml(p.project_name)}</span>
                 </div>
-                <div class="flex items-center gap-1 text-[11px] text-gray-400 mb-2">
-                    <i class="fas fa-user-circle"></i>
+                
+                <div class="flex items-center gap-1 text-[10px] text-gray-500 mb-2">
+                    <i class="fas fa-user-circle text-gray-400"></i>
                     <span>${escapeHtml(p.owner_name)}</span>
                 </div>
-                ${desc ? `<p class="text-xs text-gray-500 leading-relaxed mb-2">${escapeHtml(desc)}</p>` : ''}
-                <div class="flex flex-wrap gap-1">${langTags}</div>
-                <!-- match score bar -->
-                <div class="mt-2 h-1 bg-gray-100 rounded-full overflow-hidden">
-                    <div class="h-full rounded-full transition-all duration-700" style="width:${p.match_score}%;background:${scoreColor}"></div>
-                </div>
+                
+                <p class="text-xs text-gray-600 leading-relaxed mb-2">${escapeHtml(desc)}</p>
+                
+                <div class="flex flex-wrap gap-1 mb-2">${langTags}</div>
             </a>`;
         }).join('');
     }
 
     function formatTime(dateStr) {
-        if (!dateStr) return '';
-        // If string contains a 'T', we parse it directly. Otherwise append 'Z' for UTC if missing timezone.
-        const d = dateStr.includes('T') ? dateStr : dateStr.replace(' ', 'T') + 'Z';
-        const date = new Date(d);
+        const date = new Date(dateStr);
         const now = new Date();
         const diff = Math.floor((now - date) / 1000);
-        
         if (diff < 60) return 'now';
         if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
         if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
@@ -910,36 +398,6 @@
         return div.innerHTML;
     }
 
-    // ── Post Generic Comment (For Right Sidebar) ──────────────────────────────
-    async function postComment() {
-        const input = document.getElementById('comment-input');
-        const text = input.value.trim();
-        if (!text) {
-            showNotif('Comment cannot be empty', false);
-            return;
-        }
-
-        const btn = document.getElementById('submit-comment-btn');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Posting...';
-
-        try {
-            const res = await fetch(`${API}/comments`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ comment: text }),
-            });
-            if (!res.ok) throw new Error();
-            input.value = '';
-            await loadComments();
-            showNotif('✓ Posted!');
-        } catch (err) {
-            showNotif('Failed to post comment', false);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Post';
-        }
-    }
 
     // ── Fetch full profile from Flask ──────────────────────────────────────────
     async function initNav() {
@@ -960,14 +418,8 @@
             if (!profileRes.ok) throw new Error('Failed to load profile');
             const profile = await profileRes.json();
             
-            // Set nav emails
             if (document.getElementById('nav-email')) document.getElementById('nav-email').textContent = profile.email;
             if (document.getElementById('nav-email-mobile')) document.getElementById('nav-email-mobile').textContent = profile.email;
-            
-            // Dynamically set avatar placeholder in the Create Post box
-            if (document.getElementById('post-avatar-placeholder')) {
-                document.getElementById('post-avatar-placeholder').textContent = profile.name.charAt(0).toUpperCase();
-            }
             
             console.log('✓ Connected to Flask - User loaded:', profile.name);
         } catch (err) {
@@ -989,14 +441,8 @@
 
     document.getElementById('logout-btn').addEventListener('click', logout);
     document.getElementById('logout-btn-mobile').addEventListener('click', logout);
-    document.getElementById('submit-comment-btn').addEventListener('click', postComment);
-    document.getElementById('comment-input').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && e.ctrlKey) postComment();
-    });
 
     initNav().then(() => loadAISuggestions());
-    loadComments();
-    loadFeed(); // Load the community timeline
 </script>
 </body>
 </html>
