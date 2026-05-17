@@ -1,9 +1,3 @@
-import os
-import random
-import smtplib
-import sys
-import logging
-from email.mime.text import MIMEText
 import random
 import smtplib
 import sys
@@ -15,7 +9,7 @@ import uuid
 from flask import Blueprint, render_template, request, redirect, url_for, current_app, flash, jsonify, session
 
 # ADDED ProjectStar to the imports
-from .models import Question, QuestionComment, QuestionFavorite, QuestionLike, db, User, Skill, Badge, Comment, Project, ProjectImage, Suggestion, ProjectComment, CommentLabel, ProjectMember, ProjectStar, CommunityPost, CommunityPostLike, CommunityPostComment, JoinRequest, QuestionImage, QuesrionCommentImage
+from .models import Question, QuestionComment, QuestionFavorite, QuestionLike, db, User, Skill, Badge, Comment, Project, ProjectImage, Suggestion, ProjectComment, CommentLabel, ProjectMember, ProjectStar, CommunityPost, CommunityPostLike, CommunityPostComment, JoinRequest, QuestionImage, QuestionCommentImage
 
 views = Blueprint('views', __name__)
 
