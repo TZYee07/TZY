@@ -1220,6 +1220,35 @@ def add_member(project_id):
     return jsonify({"success": "Member added successfully!", "user_name": user_to_add.name})
 
 
+@views.route('/api/project/<int:project_id>/member/<int:user_id>/role', methods=['PUT'])
+def update_member_role(project_id, user_id):
+    """Change member role (Only Owner can execute this)"""
+    err = require_login()
+    if err: return err
+    
+    project = Project.query.get_or_404(project_id)
+    current_user = get_current_user()
+    
+    if project.user_id != current_user.id:
+        return jsonify({"error": "Unauthorized. Only the Project Lead can manage roles."}), 403
+        
+    member_record = ProjectMember.query.filter_by(project_id=project_id, user_id=user_id).first()
+    if not member_record:
+        return jsonify({"error": "Member not found in this project."}), 404
+        
+    data = request.get_json(silent=True) or {}
+    new_role = data.get('role')
+    
+    if new_role not in ['admin', 'member']:
+        return jsonify({"error": "Invalid role specified."}), 400
+        
+    member_record.role = new_role
+    
+    db.session.commit()
+    
+    return jsonify({"success": True, "message": f"Role updated to {new_role}"}), 200
+
+
 # ─────────────────────────────────────────────────────────────────────────
 # Join Request API
 # ─────────────────────────────────────────────────────────────────────────
@@ -1259,7 +1288,6 @@ def request_join_project(project_id):
     db.session.commit()
     
     return jsonify({"success": "Join request sent successfully!"}), 201
-
 
 @views.route('/api/project/<int:project_id>/join-requests', methods=['GET'])
 def get_join_requests(project_id):
