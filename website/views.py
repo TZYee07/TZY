@@ -157,7 +157,8 @@ def my_projects():
 
     own_projects = Project.query.filter_by(user_id=current_user.id).order_by(Project.created_at.desc()).all()
     
-    joined_projects = current_user.joined_projects
+    memberships = current_user.project_memberships.all()
+    joined_projects = [membership.project for membership in memberships]
 
     return render_template("My_Projects.html", own_projects=own_projects, joined_projects=joined_projects)
 
@@ -1210,15 +1211,17 @@ def add_member(project_id):
     if not user_to_add:
         return jsonify({"error": "User with this email not found"}), 404
 
-    if user_to_add in project.members:
+    existing_member = ProjectMember.query.filter_by(project_id=project_id, user_id=user_to_add.id).first()
+    
+    if existing_member:
         return jsonify({"error": "User is already a member of this project"}), 400
 
-    # Add the user to the project's members list
-    project.members.append(user_to_add)
+    new_member = ProjectMember(project_id=project_id, user_id=user_to_add.id, role='member')
+    db.session.add(new_member)
+    
     db.session.commit()
 
     return jsonify({"success": "Member added successfully!", "user_name": user_to_add.name})
-
 
 @views.route('/api/project/<int:project_id>/member/<int:user_id>/role', methods=['PUT'])
 def update_member_role(project_id, user_id):
@@ -1248,6 +1251,47 @@ def update_member_role(project_id, user_id):
     
     return jsonify({"success": True, "message": f"Role updated to {new_role}"}), 200
 
+@views.route('/api/project/<int:project_id>/member/<int:user_id>', methods=['DELETE'])
+def remove_or_leave_member(project_id, user_id):
+    err = require_login()
+    if err: return err
+    
+    project = Project.query.get_or_404(project_id)
+    current_user = get_current_user()
+    
+    current_user_role = None
+    if project.user_id == current_user.id:
+        current_user_role = 'owner'
+    else:
+        member_record = ProjectMember.query.filter_by(project_id=project.id, user_id=current_user.id).first()
+        if member_record:
+            current_user_role = member_record.role
+
+    target_member = ProjectMember.query.filter_by(project_id=project_id, user_id=user_id).first()
+    if not target_member:
+        return jsonify({"error": "Member not found in this project."}), 404
+    if current_user.id == user_id:
+        if current_user_role == 'owner':
+            return jsonify({"error": "Project owner cannot leave the project. Please transfer ownership first."}), 400
+            
+    else:
+        if current_user_role not in ['owner', 'admin']:
+            return jsonify({"error": "Unauthorized. Only project owners and admins can remove members."}), 403
+            
+        if current_user_role == 'admin':
+            if user_id == project.user_id:
+                return jsonify({"error": "Admins cannot remove the project owner."}), 403
+            if target_member.role == 'admin':
+                return jsonify({"error": "Admins cannot remove other admins."}), 403
+
+    try:
+        db.session.delete(target_member)
+        db.session.commit()
+        return jsonify({"success": True, "message": "Member removed successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
+
 
 # ─────────────────────────────────────────────────────────────────────────
 # Join Request API
@@ -1262,9 +1306,14 @@ def request_join_project(project_id):
     current_user = get_current_user()
     project = Project.query.get_or_404(project_id)
     
-    # Check if user is already a member
-    if current_user in project.members:
+    # 检查是否已经是成员
+    existing_member = ProjectMember.query.filter_by(project_id=project_id, user_id=current_user.id).first()
+    if existing_member:
         return jsonify({"error": "You are already a member of this project"}), 400
+        
+    # 防止创建者自己申请加入
+    if project.user_id == current_user.id:
+        return jsonify({"error": "You are the project owner."}), 400
     
     # Check if request already exists
     existing_request = JoinRequest.query.filter_by(
@@ -1277,18 +1326,19 @@ def request_join_project(project_id):
             return jsonify({"error": "You have already sent a join request"}), 400
         elif existing_request.status == 'rejected':
             return jsonify({"error": "Your join request was rejected"}), 400
-    
-    # Create new join request
-    join_request = JoinRequest(
-        user_id=current_user.id,
-        project_id=project_id,
-        status='pending'
-    )
-    db.session.add(join_request)
-    db.session.commit()
-    
-    return jsonify({"success": "Join request sent successfully!"}), 201
-
+        elif existing_request.status == 'accepted':
+            existing_request.status = 'pending'
+            db.session.commit()
+            return jsonify({"success": "Join request sent successfully!"}), 200
+    else:
+        join_request = JoinRequest(
+            user_id=current_user.id,
+            project_id=project_id,
+            status='pending'
+        )
+        db.session.add(join_request)
+        db.session.commit()
+        return jsonify({"success": "Join request sent successfully!"}), 201
 @views.route('/api/project/<int:project_id>/join-requests', methods=['GET'])
 def get_join_requests(project_id):
     """Get all join requests for a project (only for project lead)"""
@@ -1338,17 +1388,18 @@ def accept_join_request(project_id, request_id):
     if join_request.status != 'pending':
         return jsonify({"error": f"Request is already {join_request.status}"}), 400
     
-    # Add user to project members
     user_to_add = User.query.get_or_404(join_request.user_id)
-    if user_to_add not in project.members:
-        project.members.append(user_to_add)
+    
+    existing_member = ProjectMember.query.filter_by(project_id=project_id, user_id=user_to_add.id).first()
+    if not existing_member:
+        new_member = ProjectMember(project_id=project_id, user_id=user_to_add.id, role='member')
+        db.session.add(new_member)
     
     # Update request status
     join_request.status = 'accepted'
     db.session.commit()
     
     return jsonify({"success": "Join request accepted!", "user_name": user_to_add.name})
-
 
 @views.route('/api/project/<int:project_id>/join-requests/<int:request_id>/reject', methods=['POST'])
 def reject_join_request(project_id, request_id):
@@ -1426,13 +1477,15 @@ def create_project_comment(project_id):
     if comment_type not in ['normal', 'issue', 'suggestion']:
         return jsonify({'error': 'Invalid comment type'}), 400
     
-    # Determine user role
+# Determine user role
     user_role = 'user'
     if current_user.id == project.user_id:
         user_role = 'owner'
-    elif current_user in project.members:
-        user_role = 'team-member'
-    
+    else:
+        is_member = ProjectMember.query.filter_by(project_id=project_id, user_id=current_user.id).first()
+        if is_member:
+            user_role = 'team-member'    
+            
     comment = ProjectComment(
         project_id=project_id,
         user_id=current_user.id,
